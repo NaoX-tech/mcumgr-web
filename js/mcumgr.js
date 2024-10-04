@@ -33,6 +33,17 @@ const IMG_MGMT_ID_CORELIST = 3;
 const IMG_MGMT_ID_CORELOAD = 4;
 const IMG_MGMT_ID_ERASE = 5;
 
+let tmpfile = [];
+let call = false;
+let packetSize = 0;
+let nbPackets = 0;
+let filedone = false;
+let offset = 0;
+let filenum = 0;
+let filelen = 0;
+let filestotal = {};
+let downloading = false;
+
 class MCUManager {
     constructor(di = {}) {
         this.SERVICE_UUID = '8d53dc1d-1db7-4cd3-868b-8a527460aa84';
@@ -47,6 +58,7 @@ class MCUManager {
         this._messageCallback = null;
         this._imageUploadProgressCallback = null;
         this._uploadIsInProgress = false;
+        this._doneDownloadCallback = null;
         this._buffer = new Uint8Array();
         this._logger = di.logger || { info: console.log, error: console.error };
         this._seq = 0;
@@ -63,7 +75,7 @@ class MCUManager {
         }
         return navigator.bluetooth.requestDevice(params);
     }
-    async connect(filters) {
+    async connect(filters, files) {
         try {
             this._device = await this._requestDevice(filters);
             this._logger.info(`Connecting to device ${this.name}...`);
@@ -76,14 +88,14 @@ class MCUManager {
                     this._disconnected();
                 }
             });
-            this._connect(0);
+            this._connect(files);
         } catch (error) {
             this._logger.error(error);
             await this._disconnected();
             return;
         }
     }
-    _connect() {
+    _connect(files) {
         setTimeout(async () => {
             try {
                 if (this._connectingCallback) this._connectingCallback();
@@ -92,7 +104,37 @@ class MCUManager {
                 this._service = await server.getPrimaryService(this.SERVICE_UUID);
                 this._logger.info(`Service connected.`);
                 this._characteristic = await this._service.getCharacteristic(this.CHARACTERISTIC_UUID);
-                this._characteristic.addEventListener('characteristicvaluechanged', this._notification.bind(this));
+                this._characteristic.addEventListener('characteristicvaluechanged', async (event) => {
+                    if(call) {
+                        let packet = new Uint8Array(event.target.value.buffer);
+                        tmpfile = [...tmpfile,...packet];
+                        try {
+                            let cbor = await CBOR.decode(new Uint8Array(tmpfile).buffer.slice(8));
+                            
+                            if(cbor.data !== undefined){
+                                filestotal[filenum] = [...filestotal[filenum], ...cbor.data];
+                            }
+                            offset = cbor.off + tmpfile.length;
+                            tmpfile = [];
+                            if(cbor.rc !== undefined){
+                                if(filestotal[filenum].length === 0) delete filestotal[filenum];
+                                filenum = 0;
+                                call = false;
+                                downloading = false;
+                                this._doneDownload(filestotal);
+                            }
+                            if(cbor.data.length !== 0 && cbor.data !== undefined){
+                                this._downloadBis();
+                            } else {
+                                offset = 0;
+                                filenum++;
+                                filestotal[filenum]= [];
+                                if(cbor.rc === undefined )this._downloadBis();
+                            }
+                        } catch (err) {
+                        }
+                    }
+                });
                 await this._characteristic.startNotifications();
                 await this._connected();
                 if (this._uploadIsInProgress) {
@@ -106,6 +148,8 @@ class MCUManager {
     }
     disconnect() {
         this._userRequestedDisconnect = true;
+        filestotal = {};
+        this._doneDownload({});
         return this._device.gatt.disconnect();
     }
     onConnecting(callback) {
@@ -120,18 +164,14 @@ class MCUManager {
         this._disconnectCallback = callback;
         return this;
     }
-    onMessage(callback) {
-        this._messageCallback = callback;
+    onDoneDownload(callback) {
+        this._downloadCallback = callback;
         return this;
     }
-    onImageUploadProgress(callback) {
-        this._imageUploadProgressCallback = callback;
-        return this;
+    async _doneDownload(data) {
+        if (this._downloadCallback) this._downloadCallback(data);
     }
-    onImageUploadFinished(callback) {
-        this._imageUploadFinishedCallback = callback;
-        return this;
-    }
+
     async _connected() {
         if (this._connectCallback) this._connectCallback();
     }
@@ -144,6 +184,7 @@ class MCUManager {
         this._uploadIsInProgress = false;
         this._userRequestedDisconnect = false;
     }
+
     get name() {
         return this._device && this._device.name;
     }
@@ -158,15 +199,26 @@ class MCUManager {
         const group_lo = group & 255;
         const group_hi = group >> 8;
         const message = [op, _flags, length_hi, length_lo, group_hi, group_lo, this._seq, id, ...encodedData];
-        // console.log('>'  + message.map(x => x.toString(16).padStart(2, '0')).join(' '));
         await this._characteristic.writeValueWithoutResponse(Uint8Array.from(message));
         this._seq = (this._seq + 1) % 256;
     }
+    async _download() {
+        if(downloading === false){
+            this._downloadBis();
+            downloading = true;
+        }
+    }
+    async _downloadBis() {
+        if(call === false){
+            call = true;
+            offset = 0;
+            filestotal[filenum] = [];
+        }
+        let req = {"off":offset,"name":`/lfs1/EEG${filenum}.edf`};
+        this._sendMessage(0, MGMT_GROUP_ID_FS, 0, req);
+    }
     _notification(event) {
-        // console.log('message received');
         const message = new Uint8Array(event.target.value.buffer);
-        // console.log(message);
-        // console.log('<'  + [...message].map(x => x.toString(16).padStart(2, '0')).join(' '));
         this._buffer = new Uint8Array([...this._buffer, ...message]);
         const messageLength = this._buffer[2] * 256 + this._buffer[3];
         if (this._buffer.length < messageLength + 8) return;
@@ -185,6 +237,7 @@ class MCUManager {
         }
         if (this._messageCallback) this._messageCallback({ op, group, id, data, length });
     }
+
     cmdReset() {
         return this._sendMessage(MGMT_OP_WRITE, MGMT_GROUP_ID_OS, OS_MGMT_ID_RESET);
     }
