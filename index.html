@@ -14,7 +14,7 @@
 <body>
 <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
     <a class="navbar-brand" href="#">
-        <span id="device-name">Connect your device</span>
+        <span id="device-name">NAOX DOWNLOADING SOFTWARE</span>
     </a>
 </nav>
 <main role="main" class="container">
@@ -26,6 +26,14 @@
             <b><span id="bluetooth-is-available-message"></span></b>
             This tool is compatible with desktops (or laptops) with the <b>latest Chrome, Opera and Edge</b> browsers, and working
             Bluetooth connection (most laptops have them these days). You can also try it from Chrome on Android, or Bluefy on iOS/iPadOS.
+        </div>
+        <div>
+            Instructions:
+                <ol>
+                    <li>Make sure your NaoX device is powered on and within range. </li>
+                    <li>Search for your NaoX device using the search bar below. </li>
+                    <li>You can find the device name on its label.</li>
+                </ol>
         </div>
         <div id="connect-block" style="display: none;">
             <div class="form-group form-inline">
@@ -52,6 +60,10 @@
                 <button id="button-download" type="submit" class="btn btn-info"><i class="bi-arrow-down-circle"></i> Download</button>
             </div>
             <hr />
+            <div>
+                <button id="button-getsize" type="submit" class="btn btn-info"><i class="bi-arrow-down-circle"></i> get size</button>
+            </div>
+            <hr />
             <div id="file-list">
 
             </div>
@@ -60,6 +72,7 @@
 </div>
 
 <script src="js/cbor.js"></script>
+<script src="js/jszip.min.js"></script>
 <script src="js/mcumgr.js?v=6"></script>
 <script src="js/index.js?v=6"></script>
 </main>

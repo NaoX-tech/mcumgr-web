@@ -35,6 +35,7 @@ const IMG_MGMT_ID_ERASE = 5;
 
 let tmpfile = [];
 let call = false;
+let getSize = false;
 let packetSize = 0;
 let nbPackets = 0;
 let filedone = false;
@@ -42,7 +43,11 @@ let offset = 0;
 let filenum = 0;
 let filelen = 0;
 let filestotal = {};
+let maxSize = 0;
 let downloading = false;
+let downloadSpeed = 0;
+let startTimer;
+let speedPackets = 0;
 
 class MCUManager {
     constructor(di = {}) {
@@ -108,9 +113,9 @@ class MCUManager {
                     if(call) {
                         let packet = new Uint8Array(event.target.value.buffer);
                         tmpfile = [...tmpfile,...packet];
+                        console.log(filestotal);
                         try {
                             let cbor = await CBOR.decode(new Uint8Array(tmpfile).buffer.slice(8));
-                            
                             if(cbor.data !== undefined){
                                 filestotal[filenum] = [...filestotal[filenum], ...cbor.data];
                             }
@@ -130,6 +135,30 @@ class MCUManager {
                                 filenum++;
                                 filestotal[filenum]= [];
                                 if(cbor.rc === undefined )this._downloadBis();
+                            }
+                        } catch (err) {
+                        }
+                    } else if(getSize) {
+                        let packet = new Uint8Array(event.target.value.buffer);
+                        speedPackets += packet.length;
+                        tmpfile = [...tmpfile,...packet];
+                        try{
+                            let cbor = await CBOR.decode(new Uint8Array(tmpfile).buffer.slice(8));
+                            if(cbor.rc === undefined){
+                                maxSize += cbor.len;
+                                filenum++;
+                                tmpfile = [];
+                                downloadSpeed = speedPackets * (1000 / (new Date().getTime() - startTimer));
+                                console.log("speed download bytes/S : ",downloadSpeed);
+                                speedPackets = 0;
+                                console.log(new Date().getTime() - startTimer);
+                                this._getFilesSizes();
+                                console.log('download time :', maxSize/downloadSpeed + 'ms');
+                                console.log(maxSize);
+                            } else {
+                                filenum = 0;
+                                tmpfile = [];
+                                return maxSize;
                             }
                         } catch (err) {
                         }
@@ -214,6 +243,12 @@ class MCUManager {
             offset = 0;
             filestotal[filenum] = [];
         }
+        let req = {"off":offset,"name":`/lfs1/EEG${filenum}.edf`};
+        this._sendMessage(0, MGMT_GROUP_ID_FS, 0, req);
+    }
+    async _getFilesSizes() {
+        startTimer = new Date().getTime();
+        getSize = true;
         let req = {"off":offset,"name":`/lfs1/EEG${filenum}.edf`};
         this._sendMessage(0, MGMT_GROUP_ID_FS, 0, req);
     }
