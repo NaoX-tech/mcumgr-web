@@ -7,67 +7,137 @@
     <meta name="author" content="Andras Barthazi">
     <title>mcumgr web</title>
     <link href="css/bootstrap.min.css" rel="stylesheet">
+
+    <link href="css/custom.css" rel="stylesheet">
     <link href="css/mcumgr.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <meta name="theme-color" content="#563d7c">
 </head>
 <body>
 <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
-    <a class="navbar-brand" href="#">
-        <span id="device-name">NAOX DOWNLOADING SOFTWARE</span>
-    </a>
+    <div class="navbar-brand">
+        <span>NAOX DOWNLOADING SOFTWARE</span>
+    </div>
 </nav>
+<div id="pop-up" style="display: none;">
+    <div id="pop-up-content"></div>
+    <div>
+        <button id="pop-up-false" class="btn btn-primary">False</button>
+        <button id="pop-up-true" class="btn btn-primary">True</button>
+    </div>
+</div>
+<div class='step-container'>
+    <div>
+        <div class="step active" id="step-1">
+            <div>1</div>
+        </div>
+        <div class="step-name">Connect device & fetch data</div>
+    </div>
+    <div class="step-separator"></div>
+    <div>
+    <div class="step" id="step-2">
+        <div></div>
+    </div>
+    <div class="step-name">Save files</div>
+</div>
+    <div class="step-separator"></div>
+    <div>
+    <div class="step" id="step-3">
+        <div></div>
+    </div>
+
+    <div class="step-name">Completed</div>
+</div>
+    <div class="step-separator"></div>
+    <div>
+    <div class="step" id="step-4">
+        <div></div>
+    </div>
+    <div class="step-name">Check memory</div>
+</div>
+</div>
+
 <main role="main" class="container">
 
 <div class="starter-template">
     <h1>mcumgr web</h1>
     <div class="content" id="initial-screen">
-        <div class="alert alert-primary" role="alert" id="bluetooth-is-available">
-            <b><span id="bluetooth-is-available-message"></span></b>
-            This tool is compatible with desktops (or laptops) with the <b>latest Chrome, Opera and Edge</b> browsers, and working
-            Bluetooth connection (most laptops have them these days). You can also try it from Chrome on Android, or Bluefy on iOS/iPadOS.
+        <div>
+            <div>
+                <div id="device-name"></div>
+            </div>
+            <div>
+                <button id="button-disconnect" type="submit" class="btn btn-secondary" style="display: none;"><i class="bi-x-square"></i> Disconnect</button>
+            <div>
         </div>
         <div>
             Instructions:
                 <ol>
-                    <li>Make sure your NaoX device is powered on and within range. </li>
-                    <li>Search for your NaoX device using the search bar below. </li>
-                    <li>You can find the device name on its label.</li>
+                    <li>Enter Pairing Mode: Press [Combination of buttons]. The Bluetooth LED will blink to indicate pairing mode.</li>
+                    <li>Identify Device: Locate the device name on the label at the back of the command panel.</li>
+                    <li>Find Devices: Click "Find my device" below to display the list of available NX01 devices.</li>
                 </ol>
         </div>
         <div id="connect-block" style="display: none;">
             <div class="form-group form-inline">
                 <div class="col-auto">
-                    <input id="device-name-input" type="text" class="form-control" id="device-name-input" placeholder="Device name (optional)">
-                </div>
-                <div class="col-auto">
-                    <button id="button-connect" type="submit" class="btn btn-primary"><i class="bi-bluetooth"></i> Connect</button>
+                    <button id="button-connect" type="submit" class="btn btn-primary"><i class="bi-bluetooth"></i> Find my device</button>
                 </div>
             </div>
         </div>
+    </div>
+
+
+
+    </div>
     </div>
     <div class="content" id="connecting-screen" style="display: none;">
         <div class="alert alert-primary" role="alert">
-            Connecting...
+            Please wait while we are connecting to your device...
           </div>
     </div>
     <div class="content" id="connected-screen" style="display: none;">
-        <div class="container">
-            <div>
-                <button id="button-disconnect" type="submit" class="btn btn-secondary"><i class="bi-x-square"></i> Disconnect</button>
-            <hr />
-            <div>
-                <button id="button-download" type="submit" class="btn btn-info"><i class="bi-arrow-down-circle"></i> Download</button>
-            </div>
-            <hr />
-            <div>
-                <button id="button-getsize" type="submit" class="btn btn-info"><i class="bi-arrow-down-circle"></i> get size</button>
-            </div>
-            <hr />
-            <div id="file-list">
+        <div id="paired-device">
+            <image > </image>
+            <span id="device-name-tmp"></span>
+            <span> is successfully paired.</span>
+        </div>
+        <div>
+            The data fetching will begin in : <span id="pre-fetching-cd">X</span> seconds.
+        </div>
+    </div>
 
+    <div class="content" id="fetching-screen" style="display: none;">
+        <div>
+            <div>Please wait, we are fetching all your files. This process could take a few minutes.</div>
+            <div>Once the process is complete, do not forget to save all your files on your computer.</div>
+        </div>
+        <div>
+            <div>
+                <div id="fetching-gauge"></div> 
+                <div id="fetching-speed"></div>
+                <button id="fetching-cancel">Cancel</button>
+            </div>
+            <div>
+                <div id="fetching-remaining-time"></div>
             </div>
         </div>
+    </div>
+
+    <div class="content" id="old-connected-screen" style="display: none;">
+        <div class="container">
+            <button id="button-download" type="submit" class="btn btn-info"><i class="bi-arrow-down-circle"></i> Download</button>
+        </div>
+        <hr />
+        <div>
+            <button id="button-getsize" type="submit" class="btn btn-info"><i class="bi-arrow-down-circle"></i> get size</button>
+        </div>
+        <hr />
+        <div id="file-list">
+        </div>
+    </div>
+    <div class="center">
+        Having trouble? Contact our <a>support team</a> for assistance.
     </div>
 </div>
 
