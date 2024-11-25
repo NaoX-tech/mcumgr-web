@@ -86,8 +86,6 @@ mcumgr.onGotMaxSize((e) => {
 });
 mcumgr.onFetching(async (e) => {
     console.log('Fetching ...');
-    console.log(mcumgr.getdownloadedFiles());
-    console.log(mcumgr.getdownloadSpeed());
     console.log(e);
 });
 mcumgr.onDisconnect(() => {

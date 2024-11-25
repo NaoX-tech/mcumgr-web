@@ -45,9 +45,9 @@ let filelen = 0;
 let filestotal = {};
 let maxSize = 0;
 let downloading = false;
-let downloadSpeed = 0;
 let startTimer;
 let speedPackets = 0;
+let downloadedTotal = 0;
 
 class MCUManager {
     constructor(di = {}) {
@@ -65,6 +65,7 @@ class MCUManager {
         this._messageCallback = null;
         this._imageUploadProgressCallback = null;
         this._uploadIsInProgress = false;
+        this.downloadSpeed = 0;
         this._doneDownloadCallback = null;
         this._buffer = new Uint8Array();
         this._logger = di.logger || { info: console.log, error: console.error };
@@ -116,12 +117,30 @@ class MCUManager {
                 this._characteristic.addEventListener('characteristicvaluechanged', async (event) => {
                     if(call) {
                         let packet = new Uint8Array(event.target.value.buffer);
+                        this.downloadSpeed = packet.length * (1000 / (new Date().getTime() - startTimer));
+                        startTimer = new Date().getTime();
+                        speedPackets += packet.length;
                         tmpfile = [...tmpfile,...packet];
+                        console.log('remaingin packets :', maxSize - downloadedTotal);
+                        console.log('remaining time :',  (maxSize - downloadedTotal)/ this.downloadSpeed + 's');
+                        let fetchingStatus = {
+                            "speed" : this.downloadSpeed,
+                            "maxSize" : maxSize,
+                            "downloaded" : downloadedTotal
+                        }
+                        this._fetchingCallback(fetchingStatus);
+
                         try {
                             let cbor = await CBOR.decode(new Uint8Array(tmpfile).buffer.slice(8));
                             if(cbor.data !== undefined){
+                                //console.log('download time :', maxSize/this.downloadSpeed + 'ms');
                                 filestotal[filenum] = [...filestotal[filenum], ...cbor.data];
-                                this._fetchingCallback(filestotal);
+                                //console.log(cbor);
+                                //console.log(filestotal);
+                                downloadedTotal += cbor.data.length;
+                                //this.downloadSpeed = speedPackets * (1000 / (new Date().getTime() - startTimer));
+                                //speedPackets = 0;
+
                             }
                             offset = cbor.off + tmpfile.length;
                             tmpfile = [];
@@ -152,11 +171,11 @@ class MCUManager {
                                 maxSize += cbor.len;
                                 filenum++;
                                 tmpfile = [];
-                                downloadSpeed = speedPackets * (1000 / (new Date().getTime() - startTimer));
-                                console.log("speed download bytes/S : ",downloadSpeed);
+                                this.downloadSpeed = speedPackets * (1000 / (new Date().getTime() - startTimer));
+                                console.log("speed download bytes/S : ",this.downloadSpeed);
                                 speedPackets = 0;
                                 this._getFilesSizes();
-                                console.log('download time :', maxSize/downloadSpeed + 'ms');
+                                console.log('download time :', maxSize/this.downloadSpeed + 'ms');
                                 console.log(maxSize);
                             } else {
                                 filenum = 0;
@@ -240,7 +259,7 @@ class MCUManager {
     }
 
     getdownloadSpeed() {
-        return downloadSpeed;
+        return this.downloadSpeed;
     }
     getmaxSize() {
         return maxSize;
@@ -275,6 +294,7 @@ class MCUManager {
         }
     }
     async _downloadBis() {
+        //startTimer = new Date().getTime();
         if(call === false){
             call = true;
             offset = 0;
