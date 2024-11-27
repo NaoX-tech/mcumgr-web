@@ -66,6 +66,7 @@ class MCUManager {
         this._imageUploadProgressCallback = null;
         this._uploadIsInProgress = false;
         this.downloadSpeed = 0;
+        this.cancelDownload = false;
         this._doneDownloadCallback = null;
         this._buffer = new Uint8Array();
         this._logger = di.logger || { info: console.log, error: console.error };
@@ -121,6 +122,7 @@ class MCUManager {
                         startTimer = new Date().getTime();
                         speedPackets += packet.length;
                         tmpfile = [...tmpfile,...packet];
+                        console.log('cancel download :', this.cancelDownload);
                         console.log('remaingin packets :', maxSize - downloadedTotal);
                         console.log('remaining time :',  (maxSize - downloadedTotal)/ this.downloadSpeed + 's');
                         let fetchingStatus = {
@@ -132,6 +134,7 @@ class MCUManager {
 
                         try {
                             let cbor = await CBOR.decode(new Uint8Array(tmpfile).buffer.slice(8));
+                            console.log('cbor :',cbor);
                             if(cbor.data !== undefined){
                                 //console.log('download time :', maxSize/this.downloadSpeed + 'ms');
                                 filestotal[filenum] = [...filestotal[filenum], ...cbor.data];
@@ -151,13 +154,13 @@ class MCUManager {
                                 downloading = false;
                                 this._doneDownload(filestotal);
                             }
-                            if(cbor.data.length !== 0 && cbor.data !== undefined){
+                            if(cbor.data.length !== 0 && cbor.data !== undefined && !this.cancelDownload){
                                 this._downloadBis();
                             } else {
                                 offset = 0;
                                 filenum++;  
                                 filestotal[filenum]= [];
-                                if(cbor.rc === undefined)this._downloadBis();
+                                if(cbor.rc === undefined && !this.cancelDownload)this._downloadBis();
                             }
                         } catch (err) {
                         }
@@ -265,6 +268,12 @@ class MCUManager {
         return maxSize;
     }
 
+    cancel() {
+        if(this.cancelDownload === false){
+            this.cancelDownload = true;
+        }
+    }
+
     getdownloadedFiles() {
         let downloadedFiles = 0;
         for (let i = 0; i < filestotal.length; i++) {
@@ -290,6 +299,7 @@ class MCUManager {
     async _download() {
         if(downloading === false){
             this._downloadBis();
+            this.cancelDownload = false;
             downloading = true;
         }
     }

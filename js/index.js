@@ -16,6 +16,7 @@ const downloadButton = document.getElementById('button-download');
 const downloadFiles = document.getElementById('file-list');
 
 const getsizeButton = document.getElementById('button-getsize');
+const cancelDownloadButton = document.getElementById('fetching-cancel');
 
 const step1 = document.getElementById('step1');
 const step2 = document.getElementById('step2');
@@ -24,6 +25,17 @@ const step4 = document.getElementById('step4');
 
 const tmpdevicename = document.getElementById('device-name-tmp');
 const preFetchingCD = document.getElementById('pre-fetching-cd');
+
+const fetchingGauge = document.getElementById('fetching-gauge');
+const fetchingSpeed = document.getElementById('fetching-speed');
+
+const fetchingRemainingTime = document.getElementById('fetching-remaining-time');
+
+const popUp = document.getElementById('pop-up');
+const popUpContent = document.getElementById('pop-up-content');
+const popUpTrue = document.getElementById('pop-up-true');
+const popUpFalse = document.getElementById('pop-up-false');
+
 
 let file = new Uint8Array();
 
@@ -87,6 +99,9 @@ mcumgr.onGotMaxSize((e) => {
 mcumgr.onFetching(async (e) => {
     console.log('Fetching ...');
     console.log(e);
+
+    fetchingRemainingTime.innerText = (e.maxSize - e.downloaded)/e.speed +'s';
+    fetchingGauge.style.width = (e.downloaded/e.maxSize)*100 + '%';
 });
 mcumgr.onDisconnect(() => {
     deviceName.innerText = 'Connect your device';
@@ -110,12 +125,28 @@ downloadButton.addEventListener('click', async () => {
     mcumgr._download();
 });
 
+cancelDownloadButton.addEventListener('click', async () => {
+    popUp.style.display = 'flex';
+    popUpContent.innerText = 'You are currently fetching files from the device. Are you sure you want to cancel this process?';
+    popUpTrue.addEventListener('click', () => {
+        popUp.style.display = 'none';
+        mcumgr.cancel();
+    });
+    popUpTrue.innerHTML = 'Yes, cancel fetching';
+    popUpFalse.addEventListener('click', () => {
+        popUp.style.display = 'none';
+    });
+    popUpFalse.innerHTML = 'No, keep fetching';
+})
+
 
 getsizeButton.addEventListener('click', async () => {
     mcumgr._getFilesSizes();
 });
 mcumgr.onDoneDownload((e) => {
+    fetchingGauge.style.width = '100%';
     downloadFiles.innerHTML = '';
+    fetchingRemainingTime.innerText = 'Done';
     let testZip = new JSZip();
     for(let x = 0 ; x < Object.keys(e).length; x++){
         if(e[x].length > 0){

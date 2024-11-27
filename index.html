@@ -21,7 +21,7 @@
 </nav>
 <div id="pop-up" style="display: none;">
     <div id="pop-up-content"></div>
-    <div>
+    <div class="split" style="width: 100%;">
         <button id="pop-up-false" class="btn btn-primary">False</button>
         <button id="pop-up-true" class="btn btn-primary">True</button>
     </div>
@@ -60,7 +60,6 @@
 <main role="main" class="container">
 
 <div class="starter-template">
-    <h1>mcumgr web</h1>
     <div class="content" id="initial-screen">
         <div>
             <div>
@@ -114,13 +113,29 @@
         </div>
         <div>
             <div>
-                <div id="fetching-gauge"></div> 
+                <div>
+                    <div id="fetching-gauge-container">
+                        <div id="fetching-gauge"></div> 
+                    </div>
+                     <span id="fetching-percent">
+                        
+                     </span>
+                </div>
                 <div id="fetching-speed"></div>
                 <button id="fetching-cancel">Cancel</button>
             </div>
             <div>
                 <div id="fetching-remaining-time"></div>
             </div>
+        </div>
+    </div>
+
+    <div class="content" id="fetching-cancel-screen" style="display: none;">
+        <div>
+            The files fetching has been canceled.
+        </div>
+        <div>
+            <button id="fetching-cancel-retry">Retry fetching</button>
         </div>
     </div>
 
