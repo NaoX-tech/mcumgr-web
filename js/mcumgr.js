@@ -118,29 +118,29 @@ class MCUManager {
                 this._characteristic.addEventListener('characteristicvaluechanged', async (event) => {
                     if(call) {
                         let packet = new Uint8Array(event.target.value.buffer);
-                        this.downloadSpeed = packet.length * (1000 / (new Date().getTime() - startTimer));
-                        startTimer = new Date().getTime();
+
                         speedPackets += packet.length;
                         tmpfile = [...tmpfile,...packet];
-                        console.log('cancel download :', this.cancelDownload);
-                        console.log('remaingin packets :', maxSize - downloadedTotal);
-                        console.log('remaining time :',  (maxSize - downloadedTotal)/ this.downloadSpeed + 's');
-                        let fetchingStatus = {
-                            "speed" : this.downloadSpeed,
-                            "maxSize" : maxSize,
-                            "downloaded" : downloadedTotal
-                        }
-                        this._fetchingCallback(fetchingStatus);
+                        
 
                         try {
                             let cbor = await CBOR.decode(new Uint8Array(tmpfile).buffer.slice(8));
                             console.log('cbor :',cbor);
                             if(cbor.data !== undefined){
+                                this.downloadSpeed = speedPackets * (1000 / (new Date().getTime() - startTimer));
+                                speedPackets = 0;
                                 //console.log('download time :', maxSize/this.downloadSpeed + 'ms');
                                 filestotal[filenum] = [...filestotal[filenum], ...cbor.data];
                                 //console.log(cbor);
                                 //console.log(filestotal);
                                 downloadedTotal += cbor.data.length;
+                                let fetchingStatus = {
+                                    "speed" : this.downloadSpeed,
+                                    "maxSize" : maxSize,
+                                    "downloaded" : downloadedTotal
+                                }
+
+                                this._fetchingCallback(fetchingStatus);
                                 //this.downloadSpeed = speedPackets * (1000 / (new Date().getTime() - startTimer));
                                 //speedPackets = 0;
 
@@ -249,7 +249,7 @@ class MCUManager {
     }
     async _disconnected() {
         this._logger.info('Disconnected.');
-        if (this._disconnectCallback) this._disconnectCallback();
+        if (this._disconnectCallback) this._disconnectCallback(this._userRequestedDisconnect);
         this._device = null;
         this._service = null;
         this._characteristic = null;
@@ -304,7 +304,7 @@ class MCUManager {
         }
     }
     async _downloadBis() {
-        //startTimer = new Date().getTime();
+        startTimer = new Date().getTime();
         if(call === false){
             call = true;
             offset = 0;

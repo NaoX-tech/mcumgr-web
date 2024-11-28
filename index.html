@@ -60,6 +60,8 @@
 <main role="main" class="container">
 
 <div class="starter-template">
+
+    <!--INITIAL SCREEN -->
     <div class="content" id="initial-screen">
         <div>
             <div>
@@ -90,6 +92,8 @@
 
     </div>
     </div>
+
+    <!--CONNECT SCREEN -->
     <div class="content" id="connecting-screen" style="display: none;">
         <div class="alert alert-primary" role="alert">
             Please wait while we are connecting to your device...
@@ -105,7 +109,17 @@
             The data fetching will begin in : <span id="pre-fetching-cd">X</span> seconds.
         </div>
     </div>
+    <div class="content" id="connection-lost-screen" style="display: none;">
+        <div class="alert alert-primary" role="alert">
+            <div>Connection lost.</div>
+            <div>Please check your device's battery and Bluetooth connection, then try again.</div>
+        </div>
+        <div>
+            <button id="connection-lost-retry" class="btn btn-primary">Connect again</button>
+        </div>
+    </div>
 
+    <!--FETCHING SCREEN -->
     <div class="content" id="fetching-screen" style="display: none;">
         <div>
             <div>Please wait, we are fetching all your files. This process could take a few minutes.</div>
@@ -132,27 +146,53 @@
 
     <div class="content" id="fetching-cancel-screen" style="display: none;">
         <div>
-            The files fetching has been canceled.
+            The files fetching has been cancelled.
         </div>
         <div>
             <button id="fetching-cancel-retry">Retry fetching</button>
         </div>
     </div>
-
-    <div class="content" id="old-connected-screen" style="display: none;">
-        <div class="container">
-            <button id="button-download" type="submit" class="btn btn-info"><i class="bi-arrow-down-circle"></i> Download</button>
-        </div>
-        <hr />
+    <div class="content" id="fetching-error-screen" style="display: none;">
         <div>
-            <button id="button-getsize" type="submit" class="btn btn-info"><i class="bi-arrow-down-circle"></i> get size</button>
+            <div>Some files could not be fetched successfully. </div>
+            <div>You must retry fetching these files before proceeding to the next step. </div>
+
+            <div>Before fetching the files again:</div>
+            <div>- Check your hard drive space</div>
+
         </div>
-        <hr />
-        <div id="file-list">
+        <div>
+            <button id="fetching-error-fetch-remaining">Fetch remaining files</button>
         </div>
     </div>
+
+    <div class="content" id="fetching-done-screen" style="display: none;">
+        <div>
+            <div>All files have been fetched.</div>
+            <div>You can now proceed to saving the files to your computer.</div>
+        </div>
+        <div>
+            <a id="fetching-done-save-files" class="btn btn-primary" target="_blank">Save all files to computer</a>
+        </div>
+    </div>
+    
+    <!--ERASE SCREEN -->
+    <div class="content" id="erase-screen" style="display: none;">
+        <div>Backup Complete.</div>
+        <div>The memory will now be cleared. This action cannot be undone.</div>
+
+        <div>
+            <button id="erase-all">Continue</button>
+        </div>
+    </div>
+
+    <!--COMPLETED SCREEN -->
+    <div class="content" id="all-completed-screen" style="display: none;">
+        <div>Backup Complete.</div>
+        <div>The memory will now be cleared. This action cannot be undone.</div>
+    </div>
     <div class="center">
-        Having trouble? Contact our <a>support team</a> for assistance.
+        Having trouble? Contact our <a> support team </a> for assistance.
     </div>
 </div>
 
