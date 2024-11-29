@@ -222,7 +222,8 @@ mcumgr.onDoneDownload((e) => {
     testZip.generateAsync({type:"blob"}).then(function(content) {
         let url = URL.createObjectURL(content);
         downloadAllButton.href = url;
-    }).then(async (content) => {
+    })
+    downloadAllButton.addEventListener('click', async () => {
         if (window.showSaveFilePicker) {
             const options = {
                 suggestedName: 'EDF.zip',
@@ -232,7 +233,7 @@ mcumgr.onDoneDownload((e) => {
             };
             const handle = await window.showSaveFilePicker(options);
             const writable = await handle.createWritable();
-            await writable.write(content);
+            await writable.write();
             await writable.close();
 
             // Open the folder containing the saved file
@@ -245,4 +246,5 @@ mcumgr.onDoneDownload((e) => {
             alert('Your browser does not support the File System Access API.');
         }
     });
+    swapScreen('donefetching');
 });
