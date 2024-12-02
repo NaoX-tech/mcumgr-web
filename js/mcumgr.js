@@ -59,7 +59,9 @@ class MCUManager {
         this._characteristic = null;
         this._connectCallback = null;
         this._connectingCallback = null;
+        this._errorDisconnectedCallback = null;
         this._fetchingCallback = null;
+        this.fetchingStatus = null;
         this._gotMaxSize = null;
         this._disconnectCallback = null;
         this._messageCallback = null;
@@ -92,8 +94,7 @@ class MCUManager {
                 console.log('disconnect event :',event);
                 this._logger.info(event);
                 if (!this._userRequestedDisconnect) {
-                    this._logger.info('Trying to reconnect');
-                    this._connect(1000);
+                    this.onErrorDisconnected();
                 } else {
                     this._disconnected();
                 }
@@ -139,20 +140,21 @@ class MCUManager {
                                     "maxSize" : maxSize,
                                     "downloaded" : downloadedTotal
                                 }
-
                                 this._fetchingCallback(fetchingStatus);
-                                //this.downloadSpeed = speedPackets * (1000 / (new Date().getTime() - startTimer));
-                                //speedPackets = 0;
-
                             }
                             offset = cbor.off + tmpfile.length;
                             tmpfile = [];
                             if(cbor.rc !== undefined){
                                 if(filestotal[filenum].length === 0) delete filestotal[filenum];
+                                this.fetchingStatus = false;
                                 filenum = 0;
                                 call = false;
                                 downloading = false;
-                                this._doneDownload(filestotal);
+                                let downloadStatus = {
+                                    files : filestotal,
+                                    status : cbor.rc
+                                }
+                                this._doneDownload(downloadStatus);
                             }
                             if(cbor.data.length !== 0 && cbor.data !== undefined && !this.cancelDownload){
                                 this._downloadBis();
@@ -163,6 +165,8 @@ class MCUManager {
                                 if(cbor.rc === undefined && !this.cancelDownload)this._downloadBis();
                             }
                         } catch (err) {
+
+                            console.log('error :',err);
                         }
                     } else if(getSize) {
                         let packet = new Uint8Array(event.target.value.buffer);
@@ -203,6 +207,7 @@ class MCUManager {
     disconnect() {
         console.log('call disconnect');
         this._userRequestedDisconnect = true;
+        this.fetchingStatus = false;
         filestotal = {};
         this._doneDownload({});
         return this._device.gatt.disconnect();
@@ -223,12 +228,17 @@ class MCUManager {
         this._gotMaxSize = callback;
         return this;
     }
+    onErrorDisconnected(callback) {
+        this._errorDisconnected = callback;
+        return this;
+    }
     onDisconnect(callback) {
         console.log('disconnecting');
         this._disconnectCallback = callback;
         return this;
     }
     onDoneDownload(callback) {
+        this.fetchingStatus = false;
         this._downloadCallback = callback;
         return this;
     }
@@ -247,6 +257,10 @@ class MCUManager {
     async _connected() {
         if (this._connectCallback) this._connectCallback();
     }
+    async _errorDisconnected() {
+        if (this._errorDisconnected) this._errorDisconnectedCallback();
+    }
+
     async _disconnected() {
         this._logger.info('Disconnected.');
         if (this._disconnectCallback) this._disconnectCallback(this._userRequestedDisconnect);
@@ -271,6 +285,8 @@ class MCUManager {
     cancel() {
         if(this.cancelDownload === false){
             this.cancelDownload = true;
+
+            this.fetchingStatus = false;
         }
     }
 
@@ -300,6 +316,7 @@ class MCUManager {
         if(downloading === false){
             this._downloadBis();
             this.cancelDownload = false;
+            this.fetchingStatus = true;
             downloading = true;
         }
     }

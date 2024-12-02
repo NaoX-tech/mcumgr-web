@@ -16,7 +16,7 @@
 <body>
 <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
     <div class="navbar-brand">
-        <span>NAOX DOWNLOADING SOFTWARE</span>
+        <span>NAOX DOWNLOAD SOFTWARE</span>
     </div>
 </nav>
 <div id="pop-up" style="display: none;">
@@ -48,28 +48,27 @@
 
     <div class="step-name">Completed</div>
 </div>
-    <div class="step-separator"></div>
-    <div>
-    <div class="step" id="step-4">
-        <div></div>
+
+<div id="disconnect-window" style="display:none;"> 
+    <div id="disconnect-window-device">device name</div>
+    <div style="color: lightgreen;
+    display: flex;
+    align-items: center;"><image style="width: 20px;" src="img/bluetooth.png"></image>Connected</div>
+    <div style="margin: 15px;">
+        <button id="button-disconnect" type="submit" class="btn btn-secondary" style="display: none;">Disconnect</button>
     </div>
-    <div class="step-name">Check memory</div>
 </div>
 </div>
 
 <main role="main" class="container">
 
 <div class="starter-template">
-
     <!--INITIAL SCREEN -->
     <div class="content" id="initial-screen">
         <div>
             <div>
                 <div id="device-name"></div>
             </div>
-            <div>
-                <button id="button-disconnect" type="submit" class="btn btn-secondary" style="display: none;"><i class="bi-x-square"></i> Disconnect</button>
-            <div>
         </div>
         <div>
             Instructions:
@@ -86,11 +85,6 @@
                 </div>
             </div>
         </div>
-    </div>
-
-
-
-    </div>
     </div>
 
     <!--CONNECT SCREEN -->
@@ -126,21 +120,18 @@
             <div>Once the process is complete, do not forget to save all your files on your computer.</div>
         </div>
         <div>
-            <div>
-                <div>
+            <div style="display: flex;align-items: center;">
+                <div style="text-align: center;">
                     <div id="fetching-gauge-container">
                         <div id="fetching-gauge"></div> 
                     </div>
-                     <span id="fetching-percent">
-                        
-                     </span>
                 </div>
+                <div id="fetching-percent" style="margin: 5px;"></div>
                 <div id="fetching-speed"></div>
-                <button id="fetching-cancel">Cancel</button>
+                <button id="fetching-cancel" class="btn btn-secondary">Cancel</button>
             </div>
-            <div>
-                <div id="fetching-remaining-time"></div>
-            </div>
+
+            <div id="fetching-remaining-time"></div>
         </div>
     </div>
 
@@ -172,7 +163,7 @@
             <div>You can now proceed to saving the files to your computer.</div>
         </div>
         <div>
-            <a id="fetching-done-save-files" class="btn btn-primary" target="_blank">Save all files to computer</a>
+            <a id="fetching-done-save-files" class="btn btn-primary" target="_blank" download> Save all files to computer</a>
         </div>
     </div>
     
@@ -191,9 +182,10 @@
         <div>Backup Complete.</div>
         <div>The memory will now be cleared. This action cannot be undone.</div>
     </div>
-    <div class="center">
-        Having trouble? Contact our <a> support team </a> for assistance.
-    </div>
+</div>
+
+<div class="support">
+    Having trouble? Contact our <a href= "mailto: care@naox-technologies.com"> support team </a> for assistance.
 </div>
 
 <script src="js/cbor.js"></script>

@@ -24,6 +24,7 @@ const getsizeButton = document.getElementById('button-getsize');
 const cancelDownloadButton = document.getElementById('fetching-cancel');
 
 const retryFetchingButton = document.getElementById('fetching-cancel-retry');
+const errorFetchingButton = document.getElementById('fetching-error-fetch-remaining');
 
 const downloadAllButton = document.getElementById('fetching-done-save-files');
 
@@ -46,6 +47,8 @@ const popUpContent = document.getElementById('pop-up-content');
 const popUpTrue = document.getElementById('pop-up-true');
 const popUpFalse = document.getElementById('pop-up-false');
 
+const disconnectWindow = document.getElementById('disconnect-window');
+const disconnectWindowDevice = document.getElementById('disconnect-window-device');
 
 let file = new Uint8Array();
 
@@ -64,12 +67,15 @@ let swapScreen = (screen) => {
     switch(screen) {
         case 'initial':
             screens.initial.style.display = 'block';
+            disconnectWindow.style.display = 'none';
             break;
         case 'connecting':
             screens.connecting.style.display = 'block';
+            disconnectWindow.style.display = 'none';
             break;
         case 'connected':
             screens.connected.style.display = 'block';
+            disconnectWindow.style.display = 'flex';
             break;
         case 'connectionlost':
             screens.connectionlost.style.display = 'block';
@@ -116,29 +122,31 @@ const mcumgr = new MCUManager();
 mcumgr.onConnecting(() => {
     console.log('Connecting...');
     swapScreen('connecting');
+        
 });
 mcumgr.onConnect(() => {
-    let cd = 10;
-    swapScreen('connected');
-    mcumgr.cmdImageState();
-    tmpdevicename.innerText = mcumgr._device.name;
-    preFetchingCD.innerText = cd;
-    disconnectButton.style.display = 'block';
-    let interval = setInterval(() => {
-        if(cd > 0) {
-            cd--;
-            preFetchingCD.innerText = cd;
-        } else {
-            clearInterval(interval);
-            swapScreen('fetching');
-            mcumgr._getFilesSizes();
-        }
-    }, 1000);
+    setTimeout(() => {
+        let cd = 5;
+        swapScreen('connected');
+        mcumgr.cmdImageState();
+        tmpdevicename.innerText = mcumgr._device.name;
+        disconnectWindowDevice.innerText = mcumgr._device.name;
+        preFetchingCD.innerText = cd;
+        disconnectButton.style.display = 'block';
+        let interval = setInterval(() => {
+            if(cd > 0) {
+                cd--;
+                preFetchingCD.innerText = cd;
+            } else {
+                clearInterval(interval);
+                swapScreen('fetching');
+                mcumgr._getFilesSizes();
+            }
+        }, 1000);
+
+    }, 5000);
 });
 mcumgr.onGotMaxSize((e) => {
-
-    console.log('Max ...');
-    console.log(e);
     mcumgr._download();
 });
 mcumgr.onFetching(async (e) => {
@@ -146,11 +154,11 @@ mcumgr.onFetching(async (e) => {
     console.log(e);
     let remaining = (e.maxSize - e.downloaded)/e.speed;
     if(remaining > 3600) {
-        fetchingRemainingTime.innerText = 'More than '+  Math.floor(remaining/3600) + 'h ';
+        fetchingRemainingTime.innerText = 'Remaining time : More than '+  Math.floor(remaining/3600) + 'h ';
     } else if (remaining > 60) {
-        fetchingRemainingTime.innerText = Math.floor(remaining/60) + 'm ';
+        fetchingRemainingTime.innerText = 'Remaining time : '+ Math.floor(remaining/60) + 'm ';
     } else {
-        fetchingRemainingTime.innerText = 'Less than 1m ';
+        fetchingRemainingTime.innerText = 'Remaining time : Less than 1m ';
     }
     fetchingGauge.style.width = (e.downloaded/e.maxSize)*100 + '%';
     fetchingPercentage.innerText = Math.round((e.downloaded/e.maxSize)*100) + '%';
@@ -163,12 +171,15 @@ mcumgr.onFetching(async (e) => {
     }
 });
 mcumgr.onDisconnect((e) => {
-    console.log('Disconnected');
-    console.log(e);
     deviceName.innerText = 'Connect your device';
     swapScreen('initial');
 });
 
+
+mcumgr.onErrorDisconnected((e) => {
+    console.log(e);
+    swapScreen('connectionlost');
+});
 
 
 connectButton.addEventListener('click', async () => {
@@ -177,14 +188,25 @@ connectButton.addEventListener('click', async () => {
 });
 
 disconnectButton.addEventListener('click', async () => {
-    mcumgr.disconnect();
+    if(!mcumgr.fetchingStatus){
+        popUp.style.display = 'block';
+        popUpContent.innerText = 'Are you sure you want to disconnect your device?';
+        popUpTrue.addEventListener('click', () => {
+            popUp.style.display = 'none';
+            mcumgr.disconnect();
+        });
+        popUpTrue.innerHTML = 'Disconnect';
+        popUpFalse.addEventListener('click', () => {
+            popUp.style.display = 'none';
+        });
+        popUpFalse.innerHTML = 'Cancel';
+    }
 });
 
 
-/*downloadButton.addEventListener('click', async () => {
+errorFetchingButton.addEventListener('click', async () => {
     mcumgr._download();
-}); */
-console.log('add event listener');
+});
 cancelDownloadButton.addEventListener('click', async () => {
     console.log('Cancel download');
     popUp.style.display = 'block';
@@ -206,45 +228,49 @@ retryFetchingButton.addEventListener('click', async () => {
     mcumgr._getFilesSizes();
 });
 mcumgr.onDoneDownload((e) => {
-    fetchingGauge.style.width = '100%';
-    fetchingRemainingTime.innerText = '0 s';
-    fetchingPercentage.innerText = '100%';
-    let testZip = new JSZip();
-    for(let x = 0 ; x < Object.keys(e).length; x++){
-        if(e[x].length > 0){
-            let tmpFile = new Uint8Array(e[x]);
-            let blob = new Blob([tmpFile],{type: 'application/octet-stream'});
-            testZip.file(`EDF ${x}.edf`,blob);
-        } else {
-            
-        }
-    };
-    testZip.generateAsync({type:"blob"}).then(function(content) {
-        let url = URL.createObjectURL(content);
-        downloadAllButton.href = url;
-    })
-    downloadAllButton.addEventListener('click', async () => {
-        if (window.showSaveFilePicker) {
-            const options = {
-                suggestedName: 'EDF.zip',
-                types: [{
-                    description: 'Zip of EDF files',
-                }],
-            };
-            const handle = await window.showSaveFilePicker(options);
-            const writable = await handle.createWritable();
-            await writable.write();
-            await writable.close();
-
-            // Open the folder containing the saved file
-            const directoryHandle = await handle.getParent();
-            const fileHandle = await directoryHandle.getFileHandle(handle.name);
-            const file = await fileHandle.getFile();
-            const fileURL = URL.createObjectURL(file);
-            window.open(fileURL, '_blank');
-        } else {
-            alert('Your browser does not support the File System Access API.');
-        }
-    });
-    swapScreen('donefetching');
+    if(e.status === 0 || e.status === 5) {
+        fetchingGauge.style.width = '100%';
+        fetchingRemainingTime.innerText = '0 s';
+        fetchingPercentage.innerText = '100%';
+        let testZip = new JSZip();
+        for(let x = 0 ; x < Object.keys(e.files).length; x++){
+            if(e.files[x].length > 0){
+                let tmpFile = new Uint8Array(e.files[x]);
+                let blob = new Blob([tmpFile],{type: 'application/octet-stream'});
+                testZip.file(`EDF ${x}.edf`,blob);
+            } else {
+                
+            }
+        };
+        testZip.generateAsync({type:"blob"}).then(function(content) {
+            let url = URL.createObjectURL(content);
+            downloadAllButton.href = url;
+        })
+        /*downloadAllButton.addEventListener('click', async () => {
+            if (window.showSaveFilePicker) {
+                const options = {
+                    suggestedName: 'EDF.zip',
+                    types: [{
+                        description: 'Zip of EDF files',
+                    }],
+                };
+                const handle = await window.showSaveFilePicker(options);
+                const writable = await handle.createWritable();
+                await writable.write();
+                await writable.close();
+    
+                // Open the folder containing the saved file
+                const directoryHandle = await handle.getParent();
+                const fileHandle = await directoryHandle.getFileHandle(handle.name);
+                const file = await fileHandle.getFile();
+                const fileURL = URL.createObjectURL(file);
+                window.open(fileURL, '_blank');
+            } else {
+                alert('Your browser does not support the File System Access API.');
+            }
+        }); */
+        swapScreen('donefetching');
+    } else  {
+        swapScreen('errorfetching');
+    }
 });

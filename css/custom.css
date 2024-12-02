@@ -1,3 +1,17 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: 'Roboto', sans-serif;
+}
+.support {
+    position: absolute;
+    bottom: 30px;
+    right: 0;
+    left: 0;
+    display: inline-block;
+    text-align: center;
+}
 .split {
     display: flex;
     justify-content: space-between;
@@ -6,8 +20,8 @@
 .step-container {
     display: flex;
     justify-content: center;
-    margin-top: 60px;
-    margin-bottom: 35px;
+    margin-top: 70px;
+    margin-bottom: 50px;
 }
 .step-separator {
     width: 50px;
@@ -41,12 +55,14 @@
 #fetching-gauge-container {
     display: flex;
     align-items: center;
-    margin-top: 20px;
     border: 1px solid #000;
     width: 150px;
     border-radius: 10px;
     height: 30px;
-    padding: 2px;
+    padding: 5px;
+}
+#fetching-speed {
+    margin: 15px;
 }
 
 #fetching-gauge {
@@ -73,13 +89,24 @@
     border-radius: 25px;
 }
 
+
+.starter-template {
+    display: flex;
+    justify-content: center;
+}
+
+#disconnect-window{
+    position: absolute;
+    right: 15px;
+    margin: 15px;
+    flex-direction: column;
+    align-items: center;
+}
+
 #pop-up-content{
     margin-bottom: 35px;
 }
 
-#pop-up-true{
-
-}
 #pop-up-false{
-
+    background-color: grey;
 }
