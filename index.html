@@ -51,7 +51,7 @@
 
 <div id="disconnect-window" style="display:none;"> 
     <div id="disconnect-window-device">device name</div>
-    <div style="color: lightgreen;
+    <div style="color: #2f9e44;
     display: flex;
     align-items: center;"><image style="width: 20px;" src="img/bluetooth.png"></image>Connected</div>
     <div style="margin: 15px;">
@@ -93,6 +93,7 @@
             Please wait while we are connecting to your device...
           </div>
     </div>
+    
     <div class="content" id="connected-screen" style="display: none;">
         <div id="paired-device">
             <image > </image>
@@ -103,6 +104,16 @@
             The data fetching will begin in : <span id="pre-fetching-cd">X</span> seconds.
         </div>
     </div>
+
+    <div class="content" id="connection-failed-screen" style="display: none;">
+        <div class="alert alert-primary" role="alert">
+            <div>Connection failed. Please try again</div>
+        </div>
+        <div>
+            <button id="connection-failed-retry" class="btn btn-primary">Try again</button>
+        </div>
+    </div>
+
     <div class="content" id="connection-lost-screen" style="display: none;">
         <div class="alert alert-primary" role="alert">
             <div>Connection lost.</div>
@@ -171,16 +182,20 @@
     <div class="content" id="erase-screen" style="display: none;">
         <div>Backup Complete.</div>
         <div>The memory will now be cleared. This action cannot be undone.</div>
+        <div>
+            <button id="erase-all" class="btn btn-primary">Continue</button>
+        </div>
 
         <div>
-            <button id="erase-all">Continue</button>
+            <div>Download went wrong ?</div>
+            <div><a id="erase-redownload" class="btn btn-primary" target="_blank" download> Download again</a></div>
         </div>
     </div>
 
     <!--COMPLETED SCREEN -->
     <div class="content" id="all-completed-screen" style="display: none;">
-        <div>Backup Complete.</div>
-        <div>The memory will now be cleared. This action cannot be undone.</div>
+        <div>All steps completed successfully! Your files are now saved on your computer.</div>
+        <div>The memory of your device is empty and ready for the next patient.</div>
     </div>
 </div>
 

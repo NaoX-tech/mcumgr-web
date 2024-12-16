@@ -35,6 +35,7 @@ const IMG_MGMT_ID_ERASE = 5;
 
 let tmpfile = [];
 let call = false;
+let erase = false;
 let getSize = false;
 let packetSize = 0;
 let nbPackets = 0;
@@ -58,7 +59,9 @@ class MCUManager {
         this._service = null;
         this._characteristic = null;
         this._connectCallback = null;
+        this._connectFailedCallback = null;
         this._connectingCallback = null;
+        this._eraseCallback = null;
         this._errorDisconnectedCallback = null;
         this._fetchingCallback = null;
         this.fetchingStatus = null;
@@ -103,8 +106,19 @@ class MCUManager {
         } catch (error) {
             console.log('error :',error);
             this._logger.error(error);
-            await this._disconnected();
+            await this._connectFailedCallback();
             return;
+        }
+    }
+    async clearDevice() {
+        try {
+            erase = true;
+            call = false;
+            getSize = false;
+            this._sendMessage(MGMT_OP_WRITE, 63, 0);
+        } catch (error) {
+            console.log('error :',error);
+            this._logger.error(error);
         }
     }
     _connect(files) {
@@ -122,7 +136,8 @@ class MCUManager {
 
                         speedPackets += packet.length;
                         tmpfile = [...tmpfile,...packet];
-                        
+                        console.log('packet :',packet);
+                        console.log('tmpfile :',tmpfile);
 
                         try {
                             let cbor = await CBOR.decode(new Uint8Array(tmpfile).buffer.slice(8));
@@ -130,10 +145,7 @@ class MCUManager {
                             if(cbor.data !== undefined){
                                 this.downloadSpeed = speedPackets * (1000 / (new Date().getTime() - startTimer));
                                 speedPackets = 0;
-                                //console.log('download time :', maxSize/this.downloadSpeed + 'ms');
                                 filestotal[filenum] = [...filestotal[filenum], ...cbor.data];
-                                //console.log(cbor);
-                                //console.log(filestotal);
                                 downloadedTotal += cbor.data.length;
                                 let fetchingStatus = {
                                     "speed" : this.downloadSpeed,
@@ -165,7 +177,6 @@ class MCUManager {
                                 if(cbor.rc === undefined && !this.cancelDownload)this._downloadBis();
                             }
                         } catch (err) {
-
                             console.log('error :',err);
                         }
                     } else if(getSize) {
@@ -188,7 +199,22 @@ class MCUManager {
                                 filenum = 0;
                                 tmpfile = [];
                                 this._gotMaxSize(maxSize);
+                                console.log('maxSize :',maxSize);
                             }
+                        } catch (err) {
+                        }
+                    } else if(erase) {
+                        let packet = new Uint8Array(event.target.value.buffer);
+                        speedPackets += packet.length;
+                        tmpfile = [...tmpfile,...packet];
+                        try{
+                            let cbor = await CBOR.decode(new Uint8Array(tmpfile).buffer.slice(8));
+                            if(cbor.rc !== undefined){
+                                erase = false;
+                                tmpfile = [];
+                                this._eraseCallback(false);
+                            }
+                            this._eraseCallback(true);
                         } catch (err) {
                         }
                     }
@@ -200,7 +226,7 @@ class MCUManager {
                 }
             } catch (error) {
                 this._logger.error(error);
-                await this._disconnected();
+                await this._connectFailedCallback();
             }
         }, 1000);
     }
@@ -220,8 +246,16 @@ class MCUManager {
         this._connectCallback = callback;
         return this;
     }
+    onConnectFailed(callback) {
+        this._connectFailedCallback = callback;
+        return this;
+    }
     onFetching(callback) {
         this._fetchingCallback = callback;
+        return this;
+    }
+    onErase(callback) {
+        this._eraseCallback = callback;
         return this;
     }
     onGotMaxSize(callback) {
@@ -259,6 +293,10 @@ class MCUManager {
     }
     async _errorDisconnected() {
         if (this._errorDisconnected) this._errorDisconnectedCallback();
+    }
+
+    async _connectFailedCallback() {
+        if (this._connectFailedCallback) this._connectFailedCallback();
     }
 
     async _disconnected() {
@@ -322,6 +360,9 @@ class MCUManager {
     }
     async _downloadBis() {
         startTimer = new Date().getTime();
+        console.log(offset);
+        console.log(call)
+        console.log(filenum)
         if(call === false){
             call = true;
             offset = 0;

@@ -3,6 +3,7 @@ const screens = {
     initial: document.getElementById('initial-screen'),
     connecting: document.getElementById('connecting-screen'),
     connected: document.getElementById('connected-screen'),
+    connectionfailed: document.getElementById('connection-failed-screen'),
     connectionlost: document.getElementById('connection-lost-screen'),
     fetching: document.getElementById('fetching-screen'),
     cancelfetching: document.getElementById('fetching-cancel-screen'),
@@ -13,8 +14,14 @@ const screens = {
 };
 
 const deviceName = document.getElementById('device-name');
+
 const connectButton = document.getElementById('button-connect');
+const retryButton = document.getElementById('connection-lost-retry');
+const failedRetryButton = document.getElementById('connection-failed-retry');
 const disconnectButton = document.getElementById('button-disconnect');
+const eraseButton = document.getElementById('erase-all');
+
+
 const bluetoothIsAvailable = document.getElementById('bluetooth-is-available');
 const bluetoothIsAvailableMessage = document.getElementById('bluetooth-is-available-message');
 const connectBlock = document.getElementById('connect-block');
@@ -27,6 +34,7 @@ const retryFetchingButton = document.getElementById('fetching-cancel-retry');
 const errorFetchingButton = document.getElementById('fetching-error-fetch-remaining');
 
 const downloadAllButton = document.getElementById('fetching-done-save-files');
+const downloadAllAgainButton = document.getElementById('erase-redownload');
 
 const step1 = document.getElementById('step1');
 const step2 = document.getElementById('step2');
@@ -56,6 +64,7 @@ let swapScreen = (screen) => {
     screens.initial.style.display = 'none';
     screens.connecting.style.display = 'none';
     screens.connected.style.display = 'none';
+    screens.connectionfailed.style.display = 'none';
     screens.connectionlost.style.display = 'none';
     screens.fetching.style.display = 'none';
     screens.cancelfetching.style.display = 'none';
@@ -76,6 +85,9 @@ let swapScreen = (screen) => {
         case 'connected':
             screens.connected.style.display = 'block';
             disconnectWindow.style.display = 'flex';
+            break;
+        case 'connectionfailed':
+            screens.connectionfailed.style.display = 'block';
             break;
         case 'connectionlost':
             screens.connectionlost.style.display = 'block';
@@ -139,7 +151,6 @@ mcumgr.onConnect(() => {
                 preFetchingCD.innerText = cd;
             } else {
                 clearInterval(interval);
-                swapScreen('fetching');
                 mcumgr._getFilesSizes();
             }
         }, 1000);
@@ -147,8 +158,22 @@ mcumgr.onConnect(() => {
     }, 5000);
 });
 mcumgr.onGotMaxSize((e) => {
-    mcumgr._download();
+    if(e > 0) {
+        swapScreen('fetching');
+        mcumgr._download();
+    } else {
+        swapScreen('allcompleted');
+    }
+
 });
+mcumgr.onErase((e) => {
+    console.log('Erase done');
+    console.log(e);
+    if(e === true) {
+        swapScreen('allcompleted');
+    }
+});
+
 mcumgr.onFetching(async (e) => {
     console.log('Fetching ...');
     console.log(e);
@@ -171,20 +196,27 @@ mcumgr.onFetching(async (e) => {
     }
 });
 mcumgr.onDisconnect((e) => {
-    deviceName.innerText = 'Connect your device';
     swapScreen('initial');
 });
 
 
 mcumgr.onErrorDisconnected((e) => {
-    console.log(e);
+    console.log(e); 
     swapScreen('connectionlost');
 });
 
+mcumgr.onConnectFailed((e) => {
+    console.log(e);
+    swapScreen('connectionfailed');
+});
 
-connectButton.addEventListener('click', async () => {
-    let filters = [{ namePrefix: 'NaoX' }];
-    await mcumgr.connect(filters,file);
+let connectButtons = [connectButton,retryButton,failedRetryButton];
+
+connectButtons.forEach((button) => {
+    button.addEventListener('click', async () => {
+        let filters = [{ namePrefix: 'NaoX' }];
+        await mcumgr.connect(filters,file);
+    });
 });
 
 disconnectButton.addEventListener('click', async () => {
@@ -212,7 +244,7 @@ cancelDownloadButton.addEventListener('click', async () => {
     popUp.style.display = 'block';
     popUpContent.innerText = 'You are currently fetching files from the device. Are you sure you want to cancel this process?';
     popUpTrue.addEventListener('click', () => {
-        popUp.style.display = 'none';
+        popUp.style.display = 'none';Ò
         mcumgr.cancel();
         swapScreen('cancelfetching');
     });
@@ -238,39 +270,27 @@ mcumgr.onDoneDownload((e) => {
                 let tmpFile = new Uint8Array(e.files[x]);
                 let blob = new Blob([tmpFile],{type: 'application/octet-stream'});
                 testZip.file(`EDF ${x}.edf`,blob);
-            } else {
-                
             }
         };
         testZip.generateAsync({type:"blob"}).then(function(content) {
             let url = URL.createObjectURL(content);
             downloadAllButton.href = url;
+            let filename = `${document.getElementById('disconnect-window-device').innerText}_${new Date().toISOString().split('T')[0]}.zip`;
+            downloadAllButton.download = filename;
+            downloadAllAgainButton.href = url;
+            downloadAllAgainButton.download = filename;
         })
-        /*downloadAllButton.addEventListener('click', async () => {
-            if (window.showSaveFilePicker) {
-                const options = {
-                    suggestedName: 'EDF.zip',
-                    types: [{
-                        description: 'Zip of EDF files',
-                    }],
-                };
-                const handle = await window.showSaveFilePicker(options);
-                const writable = await handle.createWritable();
-                await writable.write();
-                await writable.close();
-    
-                // Open the folder containing the saved file
-                const directoryHandle = await handle.getParent();
-                const fileHandle = await directoryHandle.getFileHandle(handle.name);
-                const file = await fileHandle.getFile();
-                const fileURL = URL.createObjectURL(file);
-                window.open(fileURL, '_blank');
-            } else {
-                alert('Your browser does not support the File System Access API.');
-            }
-        }); */
+
+        downloadAllButton.addEventListener('click', async (e) => {
+            setTimeout(() => {
+                swapScreen('erase');
+            }, 5000);
+        });
         swapScreen('donefetching');
     } else  {
         swapScreen('errorfetching');
     }
+});
+eraseButton.addEventListener('click', async () => {
+    await mcumgr.clearDevice();
 });
