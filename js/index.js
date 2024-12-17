@@ -5,6 +5,7 @@ const screens = {
     connected: document.getElementById('connected-screen'),
     connectionfailed: document.getElementById('connection-failed-screen'),
     connectionlost: document.getElementById('connection-lost-screen'),
+    nofiles: document.getElementById('no-files-screen'),
     fetching: document.getElementById('fetching-screen'),
     cancelfetching: document.getElementById('fetching-cancel-screen'),
     donefetching: document.getElementById('fetching-done-screen'),
@@ -36,10 +37,9 @@ const errorFetchingButton = document.getElementById('fetching-error-fetch-remain
 const downloadAllButton = document.getElementById('fetching-done-save-files');
 const downloadAllAgainButton = document.getElementById('erase-redownload');
 
-const step1 = document.getElementById('step1');
-const step2 = document.getElementById('step2');
-const step3 = document.getElementById('step3');
-const step4 = document.getElementById('step4');
+const step1 = document.getElementById('step-1');
+const step2 = document.getElementById('step-2');
+const step3 = document.getElementById('step-3');
 
 const tmpdevicename = document.getElementById('device-name-tmp');
 const preFetchingCD = document.getElementById('pre-fetching-cd');
@@ -66,6 +66,7 @@ let swapScreen = (screen) => {
     screens.connected.style.display = 'none';
     screens.connectionfailed.style.display = 'none';
     screens.connectionlost.style.display = 'none';
+    screens.nofiles.style.display = 'none';
     screens.fetching.style.display = 'none';
     screens.cancelfetching.style.display = 'none';
     screens.donefetching.style.display = 'none';
@@ -86,6 +87,10 @@ let swapScreen = (screen) => {
             screens.connected.style.display = 'block';
             disconnectWindow.style.display = 'flex';
             break;
+        case 'nofiles':
+            screens.nofiles.style.display = 'block';
+            disconnectWindow.style.display = 'flex';
+            break;
         case 'connectionfailed':
             screens.connectionfailed.style.display = 'block';
             break;
@@ -100,11 +105,19 @@ let swapScreen = (screen) => {
             break;
         case 'donefetching':
             screens.donefetching.style.display = 'block';
+            step1.innerHTML ='<image src="img/check.svg" alt="Step 1 done">';
+            step1.className = 'step';
+            step2.innerHTML ='<div>2</div>';
+            step2.className = 'step active';
             break;
         case 'errorfetching':
             screens.errorfetching.style.display = 'block';
             break;
         case 'erase':
+            step2.innerHTML ='<image src="img/check.svg" alt="Step 1 done">';
+            step2.className = 'step';
+            step3.innerHTML ='<div>3</div>';
+            step3.className = 'step active';
             screens.erase.style.display = 'block';
             break;
         case 'allcompleted':
@@ -137,32 +150,35 @@ mcumgr.onConnecting(() => {
         
 });
 mcumgr.onConnect(() => {
-    setTimeout(() => {
-        let cd = 5;
-        swapScreen('connected');
-        mcumgr.cmdImageState();
-        tmpdevicename.innerText = mcumgr._device.name;
-        disconnectWindowDevice.innerText = mcumgr._device.name;
-        preFetchingCD.innerText = cd;
-        disconnectButton.style.display = 'block';
-        let interval = setInterval(() => {
-            if(cd > 0) {
-                cd--;
-                preFetchingCD.innerText = cd;
-            } else {
-                clearInterval(interval);
-                mcumgr._getFilesSizes();
-            }
-        }, 1000);
-
-    }, 5000);
+    mcumgr._getFilesSizes();
 });
 mcumgr.onGotMaxSize((e) => {
+    console.log(e);
     if(e > 0) {
+        setTimeout(() => {
+            let cd = 5;
+            swapScreen('connected');
+            mcumgr.cmdImageState();
+            tmpdevicename.innerText = mcumgr._device.name;
+            disconnectWindowDevice.innerText = mcumgr._device.name;
+            preFetchingCD.innerText = cd;
+            disconnectButton.style.display = 'block';
+            let interval = setInterval(() => {
+                if(cd > 0) {
+                    cd--;
+                    preFetchingCD.innerText = cd;
+                } else {
+                    clearInterval(interval);
+                }
+            }, 1000);
+        }, 5000);
         swapScreen('fetching');
         mcumgr._download();
     } else {
-        swapScreen('allcompleted');
+        document.getElementById('no-files-device-name-tmp').innerText = mcumgr._device.name;
+        disconnectWindowDevice.innerText = mcumgr._device.name;
+        disconnectButton.style.display = 'block';
+        swapScreen('nofiles');
     }
 
 });
@@ -244,7 +260,7 @@ cancelDownloadButton.addEventListener('click', async () => {
     popUp.style.display = 'block';
     popUpContent.innerText = 'You are currently fetching files from the device. Are you sure you want to cancel this process?';
     popUpTrue.addEventListener('click', () => {
-        popUp.style.display = 'none';Ò
+        popUp.style.display = 'none';
         mcumgr.cancel();
         swapScreen('cancelfetching');
     });
@@ -287,7 +303,7 @@ mcumgr.onDoneDownload((e) => {
             }, 5000);
         });
         swapScreen('donefetching');
-    } else  {
+    } else if(e.status !== undefined) {
         swapScreen('errorfetching');
     }
 });

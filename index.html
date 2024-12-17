@@ -14,16 +14,17 @@
     <meta name="theme-color" content="#563d7c">
 </head>
 <body>
-<nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+<nav class="navbar navbar-expand-md" style="border-bottom: 2px solid #1e1e1e;">
     <div class="navbar-brand">
+        <image src="img/logo.svg" alt="Naox Technologies logo" style="width: 50px;margin-right: 15px;"></image>
         <span>NAOX DOWNLOAD SOFTWARE</span>
     </div>
 </nav>
-<div id="pop-up" style="display: none;">
+<div id="pop-up" style="display: none;" style="background-color: #ced4da;border: 1px solid #1e1e1e;">
     <div id="pop-up-content"></div>
     <div class="split" style="width: 100%;">
-        <button id="pop-up-false" class="btn btn-primary">False</button>
-        <button id="pop-up-true" class="btn btn-primary">True</button>
+        <button id="pop-up-false" class="button reject">False</button>
+        <button id="pop-up-true" class="button">True</button>
     </div>
 </div>
 <div class='step-container'>
@@ -55,7 +56,7 @@
     display: flex;
     align-items: center;"><image style="width: 20px;" src="img/bluetooth.png"></image>Connected</div>
     <div style="margin: 15px;">
-        <button id="button-disconnect" type="submit" class="btn btn-secondary" style="display: none;">Disconnect</button>
+        <button id="button-disconnect" type="submit" class="button white-bg" style="display: none;">Disconnect</button>
     </div>
 </div>
 </div>
@@ -78,10 +79,10 @@
                     <li>Find Devices: Click "Find my device" below to display the list of available NX01 devices.</li>
                 </ol>
         </div>
-        <div id="connect-block" style="display: none;">
+        <div id="connect-block" style="display: none; justify-items: center;margin-top: 50px;">
             <div class="form-group form-inline">
                 <div class="col-auto">
-                    <button id="button-connect" type="submit" class="btn btn-primary"><i class="bi-bluetooth"></i> Find my device</button>
+                    <button id="button-connect" type="submit" class="button"><i class="bi-bluetooth"></i> Find my device</button>
                 </div>
             </div>
         </div>
@@ -96,7 +97,7 @@
     
     <div class="content" id="connected-screen" style="display: none;">
         <div id="paired-device">
-            <image > </image>
+            <image style="width: 20px;" src="img/bluetooth.png">
             <span id="device-name-tmp"></span>
             <span> is successfully paired.</span>
         </div>
@@ -110,7 +111,7 @@
             <div>Connection failed. Please try again</div>
         </div>
         <div>
-            <button id="connection-failed-retry" class="btn btn-primary">Try again</button>
+            <button id="connection-failed-retry" class="button">Try again</button>
         </div>
     </div>
 
@@ -119,8 +120,8 @@
             <div>Connection lost.</div>
             <div>Please check your device's battery and Bluetooth connection, then try again.</div>
         </div>
-        <div>
-            <button id="connection-lost-retry" class="btn btn-primary">Connect again</button>
+        <div style="justify-items: center;margin-top: 50px;">
+            <button id="connection-lost-retry" class="button">Connect again</button>
         </div>
     </div>
 
@@ -139,7 +140,7 @@
                 </div>
                 <div id="fetching-percent" style="margin: 5px;"></div>
                 <div id="fetching-speed"></div>
-                <button id="fetching-cancel" class="btn btn-secondary">Cancel</button>
+                <button id="fetching-cancel" class="button cancel">Cancel</button>
             </div>
 
             <div id="fetching-remaining-time"></div>
@@ -150,8 +151,8 @@
         <div>
             The files fetching has been cancelled.
         </div>
-        <div>
-            <button id="fetching-cancel-retry">Retry fetching</button>
+        <div style=" justify-items: center;margin-top: 50px;">
+            <button id="fetching-cancel-retry" class="button">Retry fetching</button>
         </div>
     </div>
     <div class="content" id="fetching-error-screen" style="display: none;">
@@ -173,7 +174,11 @@
             <div>All files have been fetched.</div>
             <div>You can now proceed to saving the files to your computer.</div>
         </div>
-        <div>
+        <div style="
+            justify-content: center;
+            display: flex;
+            margin-top: 30px;
+        ">
             <a id="fetching-done-save-files" class="btn btn-primary" target="_blank" download> Save all files to computer</a>
         </div>
     </div>
@@ -182,20 +187,29 @@
     <div class="content" id="erase-screen" style="display: none;">
         <div>Backup Complete.</div>
         <div>The memory will now be cleared. This action cannot be undone.</div>
-        <div>
+        <div style="text-align: center;padding-top: 15px; padding-bottom: 15px;">
             <button id="erase-all" class="btn btn-primary">Continue</button>
         </div>
 
-        <div>
+        <div style="text-align: center; padding-top: 20px;">
             <div>Download went wrong ?</div>
-            <div><a id="erase-redownload" class="btn btn-primary" target="_blank" download> Download again</a></div>
+            <div><a id="erase-redownload" class="btn btn-secondary" target="_blank" download> Download again</a></div>
         </div>
     </div>
 
     <!--COMPLETED SCREEN -->
     <div class="content" id="all-completed-screen" style="display: none;">
-        <div>All steps completed successfully! Your files are now saved on your computer.</div>
-        <div>The memory of your device is empty and ready for the next patient.</div>
+        <div style="display: flex;"><image src="img/donecheck.svg" alt='done check icon' style="margin-right: 10px;width: 20px;" >All steps completed successfully! Your files are now saved on your computer.</div>
+        <div style="display: flex;"><image src="img/donecheck.svg" alt='done check icon' style="margin-right: 10px;width: 20px;" >The memory of your device is empty and ready for the next patient.</div>
+    </div>
+
+    <div class="content" id="no-files-screen" style="display: none;">
+        <div id="no-files-paired-device">
+            <image style="width: 20px;" src="img/bluetooth.png">
+            <span id="no-files-device-name-tmp"></span>
+            <span> is successfully paired.</span>
+        </div>
+        <div>No data to retrieve from your device – memory is empty.</div>
     </div>
 </div>
 

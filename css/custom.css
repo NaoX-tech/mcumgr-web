@@ -3,6 +3,7 @@ html, body {
     margin: 0;
     padding: 0;
     font-family: 'Roboto', sans-serif;
+    color: #1e1e1e;
 }
 .support {
     position: absolute;
@@ -20,7 +21,7 @@ html, body {
 .step-container {
     display: flex;
     justify-content: center;
-    margin-top: 70px;
+    margin-top: 30px;
     margin-bottom: 50px;
 }
 .step-separator {
@@ -40,6 +41,9 @@ html, body {
     border: 1px solid black;
     align-items: center;
     justify-content: center;
+}
+.step.active {
+    background-color: #a5d8ff;
 }
 .step-name{
     font-size: 12px;
@@ -87,12 +91,14 @@ html, body {
     padding: 50px;
     width: 50vw;
     border-radius: 25px;
+    border: 1px solid #1e1e1e;
 }
 
 
 .starter-template {
     display: flex;
     justify-content: center;
+    padding: 50px;
 }
 
 #disconnect-window{
@@ -107,6 +113,24 @@ html, body {
     margin-bottom: 35px;
 }
 
-#pop-up-false{
-    background-color: grey;
+.button {    
+    background-color: #a5d8ff;
+    border: 1px solid #1e1e1e;
+    color: #1e1e1e;
+    padding: 5px 15px;
+    border-radius: 0.25rem;
+}
+
+.white-bg {
+    background-color: white;
+}
+
+.reject {
+    background-color: rgba(0, 0, 0, 0);
+}
+
+.cancel {
+    color: #e03131;
+    border-color: #e03131;
+    background-color: rgba(0, 0, 0, 0);
 }

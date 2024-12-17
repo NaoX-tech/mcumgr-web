@@ -136,8 +136,6 @@ class MCUManager {
 
                         speedPackets += packet.length;
                         tmpfile = [...tmpfile,...packet];
-                        console.log('packet :',packet);
-                        console.log('tmpfile :',tmpfile);
 
                         try {
                             let cbor = await CBOR.decode(new Uint8Array(tmpfile).buffer.slice(8));
@@ -177,7 +175,6 @@ class MCUManager {
                                 if(cbor.rc === undefined && !this.cancelDownload)this._downloadBis();
                             }
                         } catch (err) {
-                            console.log('error :',err);
                         }
                     } else if(getSize) {
                         let packet = new Uint8Array(event.target.value.buffer);
