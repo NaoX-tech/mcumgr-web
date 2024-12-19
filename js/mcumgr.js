@@ -1,4 +1,3 @@
-
 // Opcodes
 const MGMT_OP_READ = 0;
 const MGMT_OP_READ_RSP = 1;
@@ -49,6 +48,10 @@ let downloading = false;
 let startTimer;
 let speedPackets = 0;
 let downloadedTotal = 0;
+let doneCheck = false;
+let checkHash = false;
+
+let tmpCheckSum = 0;
 
 class MCUManager {
     constructor(di = {}) {
@@ -94,14 +97,13 @@ class MCUManager {
             this._device = await this._requestDevice(filters);
             this._logger.info(`Connecting to device ${this.name}...`);
             this._device.addEventListener('gattserverdisconnected', async event => {
-                console.log('disconnect event :',event);
-                this._logger.info(event);
                 if (!this._userRequestedDisconnect) {
-                    this.onErrorDisconnected();
+                    this._errorDisconnected();
                 } else {
                     this._disconnected();
                 }
             });
+            filenum = 0;
             this._connect(files);
         } catch (error) {
             console.log('error :',error);
@@ -115,12 +117,29 @@ class MCUManager {
             erase = true;
             call = false;
             getSize = false;
-            this._sendMessage(MGMT_OP_WRITE, 63, 0);
+            this._sendMessage(MGMT_OP_WRITE, 63, 0,{});
         } catch (error) {
             console.log('error :',error);
             this._logger.error(error);
         }
     }
+
+    async getSHA256(path) {
+        try {
+            let req = {"name":path,"type":"sha256"};
+            this._sendMessage(0, MGMT_GROUP_ID_FS, 2, req);
+        } catch (error) {
+            console.log('error :',error);
+            this._logger.error(error);
+        }
+    }
+
+    async convertToHex(buffer) {
+        return Array.prototype.map.call(buffer, x => x.toString(16).padStart(2, '0')).join('');
+    }
+          
+          
+
     _connect(files) {
         setTimeout(async () => {
             try {
@@ -131,12 +150,32 @@ class MCUManager {
                 this._logger.info(`Service connected.`);
                 this._characteristic = await this._service.getCharacteristic(this.CHARACTERISTIC_UUID);
                 this._characteristic.addEventListener('characteristicvaluechanged', async (event) => {
-                    if(call) {
-                        let packet = new Uint8Array(event.target.value.buffer);
+                    let packet = new Uint8Array(event.target.value.buffer);
+                    speedPackets += packet.length;
+                    tmpfile = [...tmpfile,...packet];
+                    console.log('checkHasj :',checkHash);
+                    if(checkHash) {
+                        try {
+                            let cbor = await CBOR.decode(new Uint8Array(tmpfile).buffer.slice(8));
+                            tmpfile = [];
+                            speedPackets = 0;
+                            let sha = await this.convertToHex(cbor.output);
+                            let tmpsha = sha256(filestotal[filenum-1]);
 
-                        speedPackets += packet.length;
-                        tmpfile = [...tmpfile,...packet];
+                            console.log(sha);
+                            console.log(tmpsha);
+                            console.log(filestotal[filenum-1]);
+                            console.log(filestotal[filenum-1].toString().split(',').join(''));
+                            console.log(sha256(filestotal[filenum-1].toString().split(',').join('')));
 
+                            if(true) {
+                                checkHash = false;
+                                if(cbor.rc === undefined) this._downloadBis();
+                            }
+                        } catch (err) {
+                            console.log('check hash error :',err);
+                        }
+                    } else if (call) {
                         try {
                             let cbor = await CBOR.decode(new Uint8Array(tmpfile).buffer.slice(8));
                             console.log('cbor :',cbor);
@@ -144,6 +183,7 @@ class MCUManager {
                                 this.downloadSpeed = speedPackets * (1000 / (new Date().getTime() - startTimer));
                                 speedPackets = 0;
                                 filestotal[filenum] = [...filestotal[filenum], ...cbor.data];
+                                console.log('filestotal :',filestotal);
                                 downloadedTotal += cbor.data.length;
                                 let fetchingStatus = {
                                     "speed" : this.downloadSpeed,
@@ -152,34 +192,36 @@ class MCUManager {
                                 }
                                 this._fetchingCallback(fetchingStatus);
                             }
-                            offset = cbor.off + tmpfile.length;
-                            tmpfile = [];
-                            if(cbor.rc !== undefined){
-                                if(filestotal[filenum].length === 0) delete filestotal[filenum];
-                                this.fetchingStatus = false;
-                                filenum = 0;
-                                call = false;
-                                downloading = false;
-                                let downloadStatus = {
-                                    files : filestotal,
-                                    status : cbor.rc
+                            if(tmpfile.length !== undefined) {
+                                offset = cbor.off + tmpfile.length;
+                                tmpfile = [];
+                                if(cbor.rc !== undefined){
+                                    if(filestotal[filenum].length === 0) delete filestotal[filenum];
+                                    this.fetchingStatus = false;
+                                    filenum = 0;
+                                    call = false;
+                                    downloading = false;
+                                    let downloadStatus = {
+                                        files : filestotal,
+                                        status : cbor.rc
+                                    }
+                                    this._doneDownload(downloadStatus);
                                 }
-                                this._doneDownload(downloadStatus);
-                            }
-                            if(cbor.data.length !== 0 && cbor.data !== undefined && !this.cancelDownload){
-                                this._downloadBis();
-                            } else {
-                                offset = 0;
-                                filenum++;  
-                                filestotal[filenum]= [];
-                                if(cbor.rc === undefined && !this.cancelDownload)this._downloadBis();
+                                if(cbor.data.length !== 0 && cbor.data !== undefined && !this.cancelDownload){
+                                    this._downloadBis();
+                                } else {
+                                    if(!this.cancelDownload){
+                                        offset = 0;
+                                        this.getSHA256(`/lfs1/EEG${filenum}.edf`);
+                                        filenum++;  
+                                        filestotal[filenum]= [];
+                                        checkHash = true;
+                                    }
+                                }
                             }
                         } catch (err) {
                         }
                     } else if(getSize) {
-                        let packet = new Uint8Array(event.target.value.buffer);
-                        speedPackets += packet.length;
-                        tmpfile = [...tmpfile,...packet];
                         try{
                             let cbor = await CBOR.decode(new Uint8Array(tmpfile).buffer.slice(8));
                             if(cbor.rc === undefined){
@@ -201,9 +243,6 @@ class MCUManager {
                         } catch (err) {
                         }
                     } else if(erase) {
-                        let packet = new Uint8Array(event.target.value.buffer);
-                        speedPackets += packet.length;
-                        tmpfile = [...tmpfile,...packet];
                         try{
                             let cbor = await CBOR.decode(new Uint8Array(tmpfile).buffer.slice(8));
                             if(cbor.rc !== undefined){
@@ -231,7 +270,13 @@ class MCUManager {
         console.log('call disconnect');
         this._userRequestedDisconnect = true;
         this.fetchingStatus = false;
+        tmpfile = [];
+        downloadedTotal = 0;
+        offset = 0;
+        filenum = 0;
+        filelen = 0;
         filestotal = {};
+        maxSize = 0;
         this._doneDownload({});
         return this._device.gatt.disconnect();
     }
@@ -270,6 +315,13 @@ class MCUManager {
     }
     onDoneDownload(callback) {
         this.fetchingStatus = false;
+        tmpfile = [];
+        downloadedTotal = 0;
+        offset = 0;
+        filenum = 0;
+        filelen = 0;
+        filestotal = {};
+        maxSize = 0;
         this._downloadCallback = callback;
         return this;
     }
@@ -334,6 +386,10 @@ class MCUManager {
     }
 
     async _sendMessage(op, group, id, data) {
+        console.log('op :',op);
+        console.log('group :',group);
+        console.log('id :',id);
+        console.log('data :',data);
         const _flags = 0;
         let encodedData = [];
         if (typeof data !== 'undefined') {
@@ -366,11 +422,13 @@ class MCUManager {
             filestotal[filenum] = [];
         }
         let req = {"off":offset,"name":`/lfs1/EEG${filenum}.edf`};
+        console.log('req :',req);
         this._sendMessage(0, MGMT_GROUP_ID_FS, 0, req);
     }
     async _getFilesSizes() {
         startTimer = new Date().getTime();
         getSize = true;
+        this.cancelDownload = false;
         let req = {"off":offset,"name":`/lfs1/EEG${filenum}.edf`};
         this._sendMessage(0, MGMT_GROUP_ID_FS, 0, req);
     }
@@ -401,44 +459,11 @@ class MCUManager {
     smpEcho(message) {
         return this._sendMessage(MGMT_OP_WRITE, MGMT_GROUP_ID_OS, OS_MGMT_ID_ECHO, { d: message });
     }
-    cmdImageState() {
-        return this._sendMessage(MGMT_OP_READ, MGMT_GROUP_ID_IMAGE, IMG_MGMT_ID_STATE);
-    }
-    cmdImageErase() {
-        return this._sendMessage(MGMT_OP_WRITE, MGMT_GROUP_ID_IMAGE, IMG_MGMT_ID_ERASE, {});
-    }
-    cmdImageTest(hash) {
-        return this._sendMessage(MGMT_OP_WRITE, MGMT_GROUP_ID_IMAGE, IMG_MGMT_ID_STATE, { hash, confirm: false });
-    }
-    cmdImageConfirm(hash) {
-        return this._sendMessage(MGMT_OP_WRITE, MGMT_GROUP_ID_IMAGE, IMG_MGMT_ID_STATE, { hash, confirm: true });
-    }
+
     _hash(image) {
         return crypto.subtle.digest('SHA-256', image);
     }
-    async _uploadNext() {
-        if (this._uploadOffset >= this._uploadImage.byteLength) {
-            this._uploadIsInProgress = false;
-            this._imageUploadFinishedCallback();
-            return;
-        }
 
-        const nmpOverhead = 8;
-        const message = { data: new Uint8Array(), off: this._uploadOffset };
-        if (this._uploadOffset === 0) {
-            message.len = this._uploadImage.byteLength;
-            message.sha = new Uint8Array(await this._hash(this._uploadImage));
-        }
-        this._imageUploadProgressCallback({ percentage: Math.floor(this._uploadOffset / this._uploadImage.byteLength * 100) });
-
-        const length = this._mtu - CBOR.encode(message).byteLength - nmpOverhead;
-
-        message.data = new Uint8Array(this._uploadImage.slice(this._uploadOffset, this._uploadOffset + length));
-
-        this._uploadOffset += length;
-
-        this._sendMessage(MGMT_OP_WRITE, MGMT_GROUP_ID_IMAGE, IMG_MGMT_ID_UPLOAD, message);
-    }
     async cmdUpload(image, slot = 0) {
         if (this._uploadIsInProgress) {
             this._logger.error('Upload is already in progress.');

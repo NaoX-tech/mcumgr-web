@@ -158,7 +158,6 @@ mcumgr.onGotMaxSize((e) => {
         setTimeout(() => {
             let cd = 5;
             swapScreen('connected');
-            mcumgr.cmdImageState();
             tmpdevicename.innerText = mcumgr._device.name;
             disconnectWindowDevice.innerText = mcumgr._device.name;
             preFetchingCD.innerText = cd;
@@ -169,12 +168,12 @@ mcumgr.onGotMaxSize((e) => {
                     preFetchingCD.innerText = cd;
                 } else {
                     clearInterval(interval);
+                    swapScreen('fetching');
+                    mcumgr._download();
                 }
             }, 1000);
         }, 5000);
-        swapScreen('fetching');
-        mcumgr._download();
-    } else {
+    } else if(e === 0) {
         document.getElementById('no-files-device-name-tmp').innerText = mcumgr._device.name;
         disconnectWindowDevice.innerText = mcumgr._device.name;
         disconnectButton.style.display = 'block';
@@ -192,14 +191,13 @@ mcumgr.onErase((e) => {
 
 mcumgr.onFetching(async (e) => {
     console.log('Fetching ...');
-    console.log(e);
     let remaining = (e.maxSize - e.downloaded)/e.speed;
     if(remaining > 3600) {
         fetchingRemainingTime.innerText = 'Remaining time : More than '+  Math.floor(remaining/3600) + 'h ';
     } else if (remaining > 60) {
-        fetchingRemainingTime.innerText = 'Remaining time : '+ Math.floor(remaining/60) + 'm ';
+        fetchingRemainingTime.innerText = 'Remaining time : '+ Math.floor(remaining/60) + 'min ';
     } else {
-        fetchingRemainingTime.innerText = 'Remaining time : Less than 1m ';
+        fetchingRemainingTime.innerText = 'Remaining time : Less than 1 min ';
     }
     fetchingGauge.style.width = (e.downloaded/e.maxSize)*100 + '%';
     fetchingPercentage.innerText = Math.round((e.downloaded/e.maxSize)*100) + '%';
@@ -212,6 +210,12 @@ mcumgr.onFetching(async (e) => {
     }
 });
 mcumgr.onDisconnect((e) => {
+    step1.innerHTML ='<div>1</div>';
+    step1.className = 'step active';
+    step2.innerHTML ='<div></div>';
+    step2.className = 'step';
+    step3.innerHTML ='<div></div>';
+    step3.className = 'step';
     swapScreen('initial');
 });
 
@@ -241,6 +245,7 @@ disconnectButton.addEventListener('click', async () => {
         popUpContent.innerText = 'Are you sure you want to disconnect your device?';
         popUpTrue.addEventListener('click', () => {
             popUp.style.display = 'none';
+
             mcumgr.disconnect();
         });
         popUpTrue.innerHTML = 'Disconnect';
@@ -256,7 +261,6 @@ errorFetchingButton.addEventListener('click', async () => {
     mcumgr._download();
 });
 cancelDownloadButton.addEventListener('click', async () => {
-    console.log('Cancel download');
     popUp.style.display = 'block';
     popUpContent.innerText = 'You are currently fetching files from the device. Are you sure you want to cancel this process?';
     popUpTrue.addEventListener('click', () => {
@@ -270,7 +274,6 @@ cancelDownloadButton.addEventListener('click', async () => {
     });
     popUpFalse.innerHTML = 'No, keep fetching';
 })
-console.log(cancelDownloadButton);
 retryFetchingButton.addEventListener('click', async () => {
     swapScreen('fetching');
     mcumgr._getFilesSizes();
