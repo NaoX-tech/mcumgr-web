@@ -164,9 +164,6 @@ class MCUManager {
 
                             console.log(sha);
                             console.log(tmpsha);
-                            console.log(filestotal[filenum-1]);
-                            console.log(filestotal[filenum-1].toString().split(',').join(''));
-                            console.log(sha256(filestotal[filenum-1].toString().split(',').join('')));
 
                             if(true) {
                                 checkHash = false;
