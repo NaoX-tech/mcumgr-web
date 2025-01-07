@@ -68,6 +68,7 @@ class MCUManager {
         this._errorDisconnectedCallback = null;
         this._fetchingCallback = null;
         this.fetchingStatus = null;
+        this._fetchErrorCallback = null;
         this._gotMaxSize = null;
         this._disconnectCallback = null;
         this._messageCallback = null;
@@ -126,6 +127,7 @@ class MCUManager {
 
     async getSHA256(path) {
         try {
+            checkHash = true;
             let req = {"name":path,"type":"sha256"};
             this._sendMessage(0, MGMT_GROUP_ID_FS, 2, req);
         } catch (error) {
@@ -151,29 +153,65 @@ class MCUManager {
                 this._characteristic = await this._service.getCharacteristic(this.CHARACTERISTIC_UUID);
                 this._characteristic.addEventListener('characteristicvaluechanged', async (event) => {
                     let packet = new Uint8Array(event.target.value.buffer);
+                    console.log(packet);
                     speedPackets += packet.length;
                     tmpfile = [...tmpfile,...packet];
-                    console.log('checkHasj :',checkHash);
+                    console.log('checkHash :',checkHash);
+                    console.log('call :',call);
+                    console.log('checkSize :',getSize);
                     if(checkHash) {
                         try {
                             let cbor = await CBOR.decode(new Uint8Array(tmpfile).buffer.slice(8));
+                            console.log('cbor :',cbor);
                             tmpfile = [];
                             speedPackets = 0;
-                            let sha = await this.convertToHex(cbor.output);
-                            let tmpsha = sha256(filestotal[filenum-1]);
+                            //let sha = await this.convertToHex(cbor.output);
+                            let tmpsha = sha256.create();
+                            let currentfile = new Uint8Array(filestotal[filenum-1]);
+                            tmpsha.update(currentfile);
+                            tmpsha.update([0,0]);
 
-                            console.log(sha);
-                            console.log(tmpsha);
-
-                            if(true) {
-                                checkHash = false;
-                                if(cbor.rc === undefined) this._downloadBis();
+                            //let tmpsha2 = sha256(filestotal[0]);
+                            //console.log('sha :',sha);
+                            console.log(filestotal[0]);
+                            console.log('tmpsha :',tmpsha.array());
+                            let filesha = tmpsha.array();
+                            let checkSha = false;
+                            for (let x = 0; x < filesha.length; x++) {
+                                console.log('filesha :',filesha[x]);
+                                console.log('cbor :',cbor.output[x]);
+                                if (filesha[x] !== cbor.output[x]) {
+                                    filenum--;
+                                    filestotal[filenum] = [];
+                                    checkSha = false;
+                                    this._fetchErrorCallback();
+                                    break;
+                                }
                             }
+                        if(checkSha === false){
+                            console.log('done check !');
+                            checkHash = false;
+                            if(cbor.rc === undefined) {
+                                if(downloadedTotal < maxSize){
+                                    this._downloadBis();
+                                } else if (downloadedTotal === maxSize){
+                                    this.fetchingStatus = false;
+                                    filenum = 0;
+                                    call = false;
+                                    downloading = false;
+                                    let downloadStatus = {
+                                        files : filestotal,
+                                        status : 5,
+                                    }
+                                    this._doneDownload(downloadStatus);
+                                }
+                            }
+                        }
                         } catch (err) {
-                            console.log('check hash error :',err);
                         }
                     } else if (call) {
                         try {
+                            console.log('tmpfile :',tmpfile);
                             let cbor = await CBOR.decode(new Uint8Array(tmpfile).buffer.slice(8));
                             console.log('cbor :',cbor);
                             if(cbor.data !== undefined){
@@ -190,7 +228,7 @@ class MCUManager {
                                 this._fetchingCallback(fetchingStatus);
                             }
                             if(tmpfile.length !== undefined) {
-                                offset = cbor.off + tmpfile.length;
+                                offset = cbor.off + cbor.data.length;
                                 tmpfile = [];
                                 if(cbor.rc !== undefined){
                                     if(filestotal[filenum].length === 0) delete filestotal[filenum];
@@ -217,10 +255,12 @@ class MCUManager {
                                 }
                             }
                         } catch (err) {
+                            console.log('error :',err);
                         }
                     } else if(getSize) {
                         try{
                             let cbor = await CBOR.decode(new Uint8Array(tmpfile).buffer.slice(8));
+                            console.log(cbor);
                             if(cbor.rc === undefined){
                                 maxSize += cbor.len;
                                 filenum++;
@@ -293,6 +333,12 @@ class MCUManager {
         this._fetchingCallback = callback;
         return this;
     }
+
+    onFetchError(callback) {
+        this._fetchErrorCallback = callback;
+        return this;
+    }
+
     onErase(callback) {
         this._eraseCallback = callback;
         return this;
@@ -340,7 +386,9 @@ class MCUManager {
     async _errorDisconnected() {
         if (this._errorDisconnected) this._errorDisconnectedCallback();
     }
-
+    async _fetchErrorCallback() {
+        if (this._fetchErrorCallback) this._fetchErrorCallback();
+    }
     async _connectFailedCallback() {
         if (this._connectFailedCallback) this._connectFailedCallback();
     }
@@ -408,6 +456,10 @@ class MCUManager {
             downloading = true;
         }
     }
+    async _retryDownload() {
+        tmpfile = [];
+        this._downloadBis();
+    }
     async _downloadBis() {
         startTimer = new Date().getTime();
         console.log(offset);
@@ -460,7 +512,6 @@ class MCUManager {
     _hash(image) {
         return crypto.subtle.digest('SHA-256', image);
     }
-
     async cmdUpload(image, slot = 0) {
         if (this._uploadIsInProgress) {
             this._logger.error('Upload is already in progress.');
