@@ -22,10 +22,6 @@ const failedRetryButton = document.getElementById('connection-failed-retry');
 const disconnectButton = document.getElementById('button-disconnect');
 const eraseButton = document.getElementById('erase-all');
 
-const retrycall = document.getElementById('call-download-again');
-const gethashbutton = document.getElementById('get-hash');
-
-
 const bluetoothIsAvailable = document.getElementById('bluetooth-is-available');
 const bluetoothIsAvailableMessage = document.getElementById('bluetooth-is-available-message');
 const connectBlock = document.getElementById('connect-block');
@@ -237,9 +233,6 @@ mcumgr.onConnectFailed((e) => {
     console.log(e);
     swapScreen('connectionfailed');
 });
-gethashbutton.addEventListener('click', async () => {
-    mcumgr.getSHA256("/lfs1/test_file1.edf");
-});
 let connectButtons = [connectButton,retryButton,failedRetryButton];
 
 connectButtons.forEach((button) => {
@@ -288,9 +281,6 @@ cancelDownloadButton.addEventListener('click', async () => {
 retryFetchingButton.addEventListener('click', async () => {
     swapScreen('fetching');
     mcumgr._getFilesSizes();
-});
-retrycall.addEventListener('click', async () => {
-    mcumgr._retryDownload();
 });
 mcumgr.onDoneDownload((e) => {
     if(e.status === 0 || e.status === 5) {
