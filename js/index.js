@@ -268,6 +268,7 @@ disconnectButton.addEventListener('click', async () => {
 
 
 errorFetchingButton.addEventListener('click', async () => {
+    swapScreen('fetching');
     mcumgr._download();
 });
 cancelDownloadButton.addEventListener('click', async () => {

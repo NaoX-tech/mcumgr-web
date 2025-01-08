@@ -153,57 +153,53 @@ class MCUManager {
                 this._characteristic = await this._service.getCharacteristic(this.CHARACTERISTIC_UUID);
                 this._characteristic.addEventListener('characteristicvaluechanged', async (event) => {
                     let packet = new Uint8Array(event.target.value.buffer);
-                    console.log(packet);
                     speedPackets += packet.length;
                     tmpfile = [...tmpfile,...packet];
-                    console.log('checkHash :',checkHash);
-                    console.log('call :',call);
-                    console.log('checkSize :',getSize);
                     if(checkHash) {
                         try {
                             let cbor = await CBOR.decode(new Uint8Array(tmpfile).buffer.slice(8));
                             console.log('cbor :',cbor);
                             tmpfile = [];
                             speedPackets = 0;
-                            //let sha = await this.convertToHex(cbor.output);
                             let tmpsha = sha256.create();
                             let currentfile = new Uint8Array(filestotal[filenum-1]);
                             tmpsha.update(currentfile);
-                            tmpsha.update([0,0]);
-
-                            //let tmpsha2 = sha256(filestotal[0]);
-                            //console.log('sha :',sha);
-                            console.log(filestotal[0]);
-                            console.log('tmpsha :',tmpsha.array());
                             let filesha = tmpsha.array();
-                            let checkSha = false;
+                            let checkSha = true;
                             for (let x = 0; x < filesha.length; x++) {
-                                console.log('filesha :',filesha[x]);
-                                console.log('cbor :',cbor.output[x]);
                                 if (filesha[x] !== cbor.output[x]) {
                                     filenum--;
+                                    downloadedTotal -= filestotal[filenum].length;
                                     filestotal[filenum] = [];
+
                                     checkSha = false;
+                                    checkHash = false;
+                                    call = false;
+                                    downloading = false;
+                                    this.fetchingStatus = false;
                                     this._fetchErrorCallback();
                                     break;
                                 }
                             }
-                        if(checkSha === false){
-                            console.log('done check !');
+
+                        if(checkSha){
                             checkHash = false;
-                            if(cbor.rc === undefined) {
-                                if(downloadedTotal < maxSize){
-                                    this._downloadBis();
-                                } else if (downloadedTotal === maxSize){
-                                    this.fetchingStatus = false;
-                                    filenum = 0;
-                                    call = false;
-                                    downloading = false;
-                                    let downloadStatus = {
-                                        files : filestotal,
-                                        status : 5,
-                                    }
-                                    this._doneDownload(downloadStatus);
+                            if (downloadedTotal === maxSize){
+                                this.fetchingStatus = false;
+                                filenum = 0;
+                                call = false;
+                                downloading = false;
+                                let downloadStatus = {
+                                    files : filestotal,
+                                    status : 5,
+                                }
+                                this._doneDownload(downloadStatus);
+                            } else {
+                                if(cbor.rc === undefined) {
+                                    if(downloadedTotal < maxSize){
+                                        filestotal[filenum]= [];
+                                        this._downloadBis();
+                                    } 
                                 }
                             }
                         }
@@ -211,14 +207,11 @@ class MCUManager {
                         }
                     } else if (call) {
                         try {
-                            console.log('tmpfile :',tmpfile);
                             let cbor = await CBOR.decode(new Uint8Array(tmpfile).buffer.slice(8));
-                            console.log('cbor :',cbor);
                             if(cbor.data !== undefined){
                                 this.downloadSpeed = speedPackets * (1000 / (new Date().getTime() - startTimer));
                                 speedPackets = 0;
                                 filestotal[filenum] = [...filestotal[filenum], ...cbor.data];
-                                console.log('filestotal :',filestotal);
                                 downloadedTotal += cbor.data.length;
                                 let fetchingStatus = {
                                     "speed" : this.downloadSpeed,
@@ -248,8 +241,7 @@ class MCUManager {
                                     if(!this.cancelDownload){
                                         offset = 0;
                                         this.getSHA256(`/lfs1/EEG${filenum}.edf`);
-                                        filenum++;  
-                                        filestotal[filenum]= [];
+                                        filenum++;
                                         checkHash = true;
                                     }
                                 }
@@ -258,24 +250,20 @@ class MCUManager {
                             console.log('error :',err);
                         }
                     } else if(getSize) {
+
                         try{
                             let cbor = await CBOR.decode(new Uint8Array(tmpfile).buffer.slice(8));
-                            console.log(cbor);
                             if(cbor.rc === undefined){
                                 maxSize += cbor.len;
                                 filenum++;
                                 tmpfile = [];
                                 this.downloadSpeed = speedPackets * (1000 / (new Date().getTime() - startTimer));
-                                console.log("speed download bytes/S : ",this.downloadSpeed);
                                 speedPackets = 0;
                                 this._getFilesSizes();
-                                console.log('download time :', maxSize/this.downloadSpeed + 'ms');
-                                console.log(maxSize);
                             } else {
                                 filenum = 0;
                                 tmpfile = [];
                                 this._gotMaxSize(maxSize);
-                                console.log('maxSize :',maxSize);
                             }
                         } catch (err) {
                         }
