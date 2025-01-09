@@ -98,7 +98,8 @@ class MCUManager {
             this._device = await this._requestDevice(filters);
             this._logger.info(`Connecting to device ${this.name}...`);
             this._device.addEventListener('gattserverdisconnected', async event => {
-                if (!this._userRequestedDisconnect) {
+                console.log(this._userRequestedDisconnect);
+                if(!this._userRequestedDisconnect) {
                     this._errorDisconnected();
                 } else {
                     this._disconnected();
@@ -155,6 +156,10 @@ class MCUManager {
                     let packet = new Uint8Array(event.target.value.buffer);
                     speedPackets += packet.length;
                     tmpfile = [...tmpfile,...packet];
+                    console.log('tmpfile :',tmpfile);
+                    console.log('checkHash :',checkHash);
+                    console.log('call :',call);
+                    console.log('getSize :',getSize);
                     if(checkHash) {
                         try {
                             let cbor = await CBOR.decode(new Uint8Array(tmpfile).buffer.slice(8));
