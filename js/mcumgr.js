@@ -50,6 +50,7 @@ let speedPackets = 0;
 let downloadedTotal = 0;
 let doneCheck = false;
 let checkHash = false;
+let echo = false;
 
 let tmpCheckSum = 0;
 
@@ -71,6 +72,7 @@ class MCUManager {
         this._fetchErrorCallback = null;
         this._gotMaxSize = null;
         this._disconnectCallback = null;
+        this._echoCallback = null;
         this._messageCallback = null;
         this._imageUploadProgressCallback = null;
         this._uploadIsInProgress = false;
@@ -156,11 +158,21 @@ class MCUManager {
                     let packet = new Uint8Array(event.target.value.buffer);
                     speedPackets += packet.length;
                     tmpfile = [...tmpfile,...packet];
+                    console.log("echo :",echo);
                     console.log('tmpfile :',tmpfile);
                     console.log('checkHash :',checkHash);
                     console.log('call :',call);
                     console.log('getSize :',getSize);
-                    if(checkHash) {
+                    if (echo) {
+                        try {
+                            let cbor = await CBOR.decode(new Uint8Array(tmpfile).buffer.slice(8));
+                            console.log('cbor :',cbor);
+                            this._onEcho(cbor);
+                            tmpfile = [];
+                            echo = false;
+                        } catch (err) {
+                        }
+                    } else if(checkHash) {
                         try {
                             let cbor = await CBOR.decode(new Uint8Array(tmpfile).buffer.slice(8));
                             console.log('cbor :',cbor);
@@ -258,6 +270,7 @@ class MCUManager {
 
                         try{
                             let cbor = await CBOR.decode(new Uint8Array(tmpfile).buffer.slice(8));
+                            console.log('cbor :',cbor);
                             if(cbor.rc === undefined){
                                 maxSize += cbor.len;
                                 filenum++;
@@ -300,6 +313,11 @@ class MCUManager {
         console.log('call disconnect');
         this._userRequestedDisconnect = true;
         this.fetchingStatus = false;
+        checkHash = false;
+        call = false;
+        getSize = false;
+        downloading = false;
+        echo = false;
         tmpfile = [];
         downloadedTotal = 0;
         offset = 0;
@@ -349,6 +367,10 @@ class MCUManager {
         this._disconnectCallback = callback;
         return this;
     }
+    onEcho(callback) {
+        this._echoCallback = callback;
+        return this;
+    }
     onDoneDownload(callback) {
         this.fetchingStatus = false;
         tmpfile = [];
@@ -371,6 +393,10 @@ class MCUManager {
     }
     async _doneDownload(data) {
         if (this._downloadCallback) this._downloadCallback(data);
+    }
+
+    async _onEcho(data) {
+        if (this._echoCallback) this._echoCallback(data);
     }
 
     async _connected() {
@@ -498,8 +524,11 @@ class MCUManager {
     cmdReset() {
         return this._sendMessage(MGMT_OP_WRITE, MGMT_GROUP_ID_OS, OS_MGMT_ID_RESET);
     }
-    smpEcho(message) {
-        return this._sendMessage(MGMT_OP_WRITE, MGMT_GROUP_ID_OS, OS_MGMT_ID_ECHO, { d: message });
+    smpEcho() {
+        echo = true;
+        tmpfile = [];
+        let req = {"off":0,"name":`/lfs1/VOID.VOID`};
+        this._sendMessage(0, MGMT_GROUP_ID_FS, 0, req);
     }
 
     _hash(image) {

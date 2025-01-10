@@ -11,6 +11,7 @@ const screens = {
     donefetching: document.getElementById('fetching-done-screen'),
     errorfetching: document.getElementById('fetching-error-screen'),
     erase: document.getElementById('erase-screen'),
+    erasing: document.getElementById('erasing-screen'),
     allcompleted: document.getElementById('all-completed-screen'),
 };
 
@@ -59,6 +60,8 @@ const disconnectWindowDevice = document.getElementById('disconnect-window-device
 
 let file = new Uint8Array();
 
+let echoResponse = false;
+
 let swapScreen = (screen) => {
     screens.initial.style.display = 'none';
     screens.connecting.style.display = 'none';
@@ -71,6 +74,7 @@ let swapScreen = (screen) => {
     screens.donefetching.style.display = 'none';
     screens.errorfetching.style.display = 'none';
     screens.erase.style.display = 'none';
+    screens.erasing.style.display = 'none';
     screens.allcompleted.style.display = 'none';
 
     switch(screen) {
@@ -95,6 +99,7 @@ let swapScreen = (screen) => {
             break;
         case 'connectionlost':
             screens.connectionlost.style.display = 'block';
+            if(disconnectWindow.style.display === 'flex') disconnectWindow.style.display = 'none';
             break;
         case 'fetching':
             screens.fetching.style.display = 'block';
@@ -118,6 +123,9 @@ let swapScreen = (screen) => {
             step3.innerHTML ='<div>3</div>';
             step3.className = 'step active';
             screens.erase.style.display = 'block';
+            break;
+        case 'erasing':
+            screens.erasing.style.display = 'block';
             break;
         case 'allcompleted':
             screens.allcompleted.style.display = 'block';
@@ -178,13 +186,33 @@ mcumgr.onGotMaxSize((e) => {
         disconnectButton.style.display = 'block';
         swapScreen('nofiles');
     }
-
 });
+
 mcumgr.onErase((e) => {
     console.log('Erase done');
     console.log(e);
     if(e === true) {
-        swapScreen('allcompleted');
+        swapScreen('erasing');
+        if(echoResponse !== true) {
+            let loop = setInterval(() => {
+                console.log('loop',echoResponse);
+                console.log(loop);
+                if(echoResponse === true) {
+                    clearInterval(loop);
+                    swapScreen('allcompleted');
+                } else {
+                    mcumgr.smpEcho();
+                }
+            },10000);
+        }
+    }
+});
+
+mcumgr.onEcho((e) => {
+    console.log(e);
+    if(e !== undefined) {
+        console.log('Echo response');
+        echoResponse = true;
     }
 });
 
