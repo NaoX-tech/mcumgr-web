@@ -193,6 +193,7 @@ mcumgr.onErase((e) => {
     console.log(e);
     if(e === true) {
         swapScreen('erasing');
+        console.log('echoResponse',echoResponse);
         if(echoResponse !== true) {
             let loop = setInterval(() => {
                 console.log('loop',echoResponse);
