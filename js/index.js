@@ -201,6 +201,7 @@ mcumgr.onErase((e) => {
                 if(echoResponse === true) {
                     clearInterval(loop);
                     swapScreen('allcompleted');
+                    echoResponse = false;
                 } else {
                     mcumgr.smpEcho();
                 }
