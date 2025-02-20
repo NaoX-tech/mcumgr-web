@@ -481,7 +481,7 @@ class MCUManager {
     }
     async _downloadBis() {
         startTimer = new Date().getTime();
-        let downloadLength = filestotal[filenum] === undefined ? 0 : filestotal[filenum].length;
+        /*let downloadLength = filestotal[filenum] === undefined ? 0 : filestotal[filenum].length;
         setTimeout(async () => {
             if(filestotal[filenum].length === downloadLength) {
                 if (this.cancelDownload === false) {
@@ -490,7 +490,7 @@ class MCUManager {
                     this._fetchErrorCallback();
                 }
             }
-        }, 30000);
+        }, 30000); */
         if(call === false){
             call = true;
             offset = 0;
