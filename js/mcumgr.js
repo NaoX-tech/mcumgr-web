@@ -481,9 +481,16 @@ class MCUManager {
     }
     async _downloadBis() {
         startTimer = new Date().getTime();
-        console.log(offset);
-        console.log(call)
-        console.log(filenum)
+        let downloadLength = filestotal[filenum] === undefined ? 0 : filestotal[filenum].length;
+        setTimeout(async () => {
+            if(filestotal[filenum].length === downloadLength) {
+                if (this.cancelDownload === false) {
+                    this.cancelDownload = true;
+                    this.fetchingStatus = false;
+                    this._fetchErrorCallback();
+                }
+            }
+        }, 30000);
         if(call === false){
             call = true;
             offset = 0;

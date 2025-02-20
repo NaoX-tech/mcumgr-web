@@ -206,6 +206,9 @@ mcumgr.onErase((e) => {
                     mcumgr.smpEcho();
                 }
             },10000);
+        } else if (echoResponse === true) {
+            swapScreen('allcompleted');
+            echoResponse = false;
         }
     }
 });
