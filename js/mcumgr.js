@@ -481,16 +481,23 @@ class MCUManager {
     }
     async _downloadBis() {
         startTimer = new Date().getTime();
-        /*let downloadLength = filestotal[filenum] === undefined ? 0 : filestotal[filenum].length;
-        setTimeout(async () => {
-            if(filestotal[filenum].length === downloadLength) {
+        let downloadLength = filestotal[filenum] === undefined ? 0 : filestotal[filenum].length;
+        let checkStuck;
+        if(checkStuck !== undefined) {
+            clearTimeout(checkStuck);
+        }
+        checkStuck = setTimeout(async () => {
+            console.log(this.fetchingStatus);
+            if(filestotal[filenum] !== undefined &&  filestotal[filenum].length === downloadLength && this.fetchingStatus) {
                 if (this.cancelDownload === false) {
                     this.cancelDownload = true;
                     this.fetchingStatus = false;
                     this._fetchErrorCallback();
                 }
+            } else {
+                clearTimeout(checkStuck);
             }
-        }, 30000); */
+        }, 30000);
         if(call === false){
             call = true;
             offset = 0;

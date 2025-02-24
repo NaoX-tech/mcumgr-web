@@ -201,6 +201,7 @@ mcumgr.onErase((e) => {
                 if(echoResponse === true) {
                     clearInterval(loop);
                     swapScreen('allcompleted');
+                    window.addEventListener('unload', releaseWakeLock);
                     echoResponse = false;
                 } else {
                     mcumgr.smpEcho();
@@ -208,6 +209,7 @@ mcumgr.onErase((e) => {
             },10000);
         } else if (echoResponse === true) {
             swapScreen('allcompleted');
+            window.addEventListener('unload', releaseWakeLock);
             echoResponse = false;
         }
     }
@@ -350,3 +352,44 @@ mcumgr.onDoneDownload((e) => {
 eraseButton.addEventListener('click', async () => {
     await mcumgr.clearDevice();
 });
+
+
+// Vérifiez si l'API Wake Lock est disponible
+if ('wakeLock' in navigator) {
+    let wakeLock = null;
+  
+    // Fonction pour demander le Wake Lock
+    const requestWakeLock = async () => {
+      try {
+        wakeLock = await navigator.wakeLock.request('screen');
+      } catch (err) {
+        console.error(`${err.name}, ${err.message}`);
+      }
+    };
+  
+    // Fonction pour libérer le Wake Lock
+    const releaseWakeLock = async () => {
+      if (wakeLock !== null) {
+        try {
+          await wakeLock.release();
+          wakeLock = null;
+          console.log('Wake Lock désactivé');
+        } catch (err) {
+          console.error(`${err.name}, ${err.message}`);
+        }
+      }
+    };
+  
+    // Demander le Wake Lock lorsque la page est chargée
+    document.addEventListener('DOMContentLoaded', requestWakeLock);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          requestWakeLock();
+        }
+    });
+    // Libérer le Wake Lock lorsque la page est déchargée
+    //window.addEventListener('unload', releaseWakeLock);
+  } else {
+    console.log('Wake Lock API non supportée');
+  }
+  
