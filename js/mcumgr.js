@@ -95,7 +95,7 @@ class MCUManager {
         }
         return navigator.bluetooth.requestDevice(params);
     }
-    async connect(filters, files) {
+    async connect(filters) {
         try {
             this._device = await this._requestDevice(filters);
             this._logger.info(`Connecting to device ${this.name}...`);
@@ -108,7 +108,7 @@ class MCUManager {
                 }
             });
             filenum = 0;
-            this._connect(files);
+            this._connect();
         } catch (error) {
             console.log('error :',error);
             this._logger.error(error);
@@ -145,7 +145,7 @@ class MCUManager {
           
           
 
-    _connect(files) {
+    _connect() {
         setTimeout(async () => {
             try {
                 if (this._connectingCallback) this._connectingCallback();
@@ -267,7 +267,6 @@ class MCUManager {
                             console.log('error :',err);
                         }
                     } else if(getSize) {
-
                         try{
                             let cbor = await CBOR.decode(new Uint8Array(tmpfile).buffer.slice(8));
                             console.log('cbor :',cbor);
@@ -482,7 +481,7 @@ class MCUManager {
     async _downloadBis() {
         startTimer = new Date().getTime();
         let downloadLength = filestotal[filenum] === undefined ? 0 : filestotal[filenum].length;
-        let checkStuck;
+        /*let checkStuck;
         if(checkStuck !== undefined) {
             clearTimeout(checkStuck);
         }
@@ -497,7 +496,7 @@ class MCUManager {
             } else {
                 clearTimeout(checkStuck);
             }
-        }, 30000);
+        }, 30000); */
         if(call === false){
             call = true;
             offset = 0;

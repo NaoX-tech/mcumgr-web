@@ -273,7 +273,7 @@ let connectButtons = [connectButton,retryButton,failedRetryButton];
 connectButtons.forEach((button) => {
     button.addEventListener('click', async () => {
         let filters = [{ namePrefix: 'NaoX' }];
-        await mcumgr.connect(filters,file);
+        await mcumgr.connect(filters);
     });
 });
 
