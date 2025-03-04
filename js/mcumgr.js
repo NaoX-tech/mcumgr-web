@@ -480,7 +480,7 @@ class MCUManager {
     }
     async _downloadBis() {
         startTimer = new Date().getTime();
-        let downloadLength = filestotal[filenum] === undefined ? 0 : filestotal[filenum].length;
+        //let downloadLength = filestotal[filenum] === undefined ? 0 : filestotal[filenum].length;
         /*let checkStuck;
         if(checkStuck !== undefined) {
             clearTimeout(checkStuck);
