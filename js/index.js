@@ -392,4 +392,11 @@ if ('wakeLock' in navigator) {
   } else {
     console.log('Wake Lock API non supportée');
   }
+
+  //. MEHDI
+
+  const delall = document.getElementById('del-all');
+  delall.addEventListener('click', async ()=> {
+    await mcumgr.clearDevice();
+  });
   
